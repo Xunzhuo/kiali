@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/version"
 	kube "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 
 	kialiConfig "github.com/kiali/kiali/config"
@@ -106,29 +107,48 @@ func UseRemoteCreds(remoteSecret *RemoteSecret) (*rest.Config, error) {
 // Returns configuration if Kiali is not int Cluster when InCluster is false
 // It returns an error on any problem
 func ConfigClient() (*rest.Config, error) {
+	log.Infof("Start to Create %s Client", "Kube")
 	if kialiConfig.Get().InCluster {
 		var incluster *rest.Config
 		var err error
 		if remoteSecret, readErr := GetRemoteSecret(RemoteSecretData); readErr == nil {
+			log.Infof("Start to Create %s Client", "Remote Secret")
 			incluster, err = UseRemoteCreds(remoteSecret)
 		} else {
-			incluster, err = rest.InClusterConfig()
+			if kialiConfig.Get().KubernetesConfig.EnableCustomSecret == "true" {
+				incluster, err = clientcmd.BuildConfigFromFlags("", kialiConfig.Get().KubernetesConfig.SecretPath)
+				incluster.Host = "https://127.189.140.14" + ":60002"
+				log.Infof("Start to Create %s Client With Path: %s With Config: %+v", "CustomSecret", kialiConfig.Get().KubernetesConfig.SecretPath, *incluster)
+			} else {
+				log.Infof("Start to Create %s Client", "InClusterConfig")
+				incluster, err = rest.InClusterConfig()
+			}
 		}
 		if err != nil {
 			return nil, err
 		}
 		incluster.QPS = kialiConfig.Get().KubernetesConfig.QPS
 		incluster.Burst = kialiConfig.Get().KubernetesConfig.Burst
+
 		return incluster, nil
 	}
-	host, port := os.Getenv("KUBERNETES_SERVICE_HOST"), os.Getenv("KUBERNETES_SERVICE_PORT")
-	if len(host) == 0 || len(port) == 0 {
+	log.Infof("Start to Create %s Client", "APIServer IP")
+
+	// Read apiserver Host and Port from config
+	apiserverServiceHost := kialiConfig.Get().KubernetesConfig.APIServerServiceName
+	apiserverServicePort := kialiConfig.Get().KubernetesConfig.APIServerServicePort
+	// If apiserver Host or Port is empty, read them from env
+	if apiserverServiceHost == "" || apiserverServicePort == "" {
+		apiserverServiceHost, apiserverServicePort = os.Getenv("KUBERNETES_SERVICE_HOST"), os.Getenv("KUBERNETES_SERVICE_PORT")
+	}
+
+	if len(apiserverServiceHost) == 0 || len(apiserverServicePort) == 0 {
 		return nil, fmt.Errorf("unable to load in-cluster configuration, KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT must be defined")
 	}
 
 	return &rest.Config{
 		// TODO: switch to using cluster DNS.
-		Host:  "http://" + net.JoinHostPort(host, port),
+		Host:  "http://" + net.JoinHostPort(apiserverServiceHost, apiserverServicePort),
 		QPS:   kialiConfig.Get().KubernetesConfig.QPS,
 		Burst: kialiConfig.Get().KubernetesConfig.Burst,
 	}, nil
@@ -143,6 +163,8 @@ func NewClientFromConfig(config *rest.Config) (*K8SClient, error) {
 	client := K8SClient{
 		token: config.BearerToken,
 	}
+
+	log.Infof("Created Config is: %+v", *config)
 
 	log.Debugf("Rest perf config QPS: %f Burst: %d", config.QPS, config.Burst)
 

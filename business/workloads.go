@@ -122,6 +122,7 @@ func (in *WorkloadService) GetWorkloadList(ctx context.Context, criteria Workloa
 		defer wg.Done()
 		var err2 error
 		ws, err2 = fetchWorkloads(ctx, in.businessLayer, criteria.Namespace, "")
+		log.Infof("Get Workloads: %+v", ws)
 		if err2 != nil {
 			log.Errorf("Error fetching Workloads per namespace %s: %s", criteria.Namespace, err2)
 			errChan <- err2
@@ -144,6 +145,7 @@ func (in *WorkloadService) GetWorkloadList(ctx context.Context, criteria Workloa
 			defer wg.Done()
 			var err2 error
 			istioConfigList, err2 = in.businessLayer.IstioConfig.GetIstioConfigList(ctx, istioConfigCriteria)
+			log.Infof("Get IstioConfigList: %+v", istioConfigList)
 			if err2 != nil {
 				log.Errorf("Error fetching Istio Config per namespace %s: %s", criteria.Namespace, err2)
 				errChan <- err2
@@ -153,6 +155,7 @@ func (in *WorkloadService) GetWorkloadList(ctx context.Context, criteria Workloa
 
 	wg.Wait()
 	if len(errChan) != 0 {
+		log.Info("Get Workloads Error")
 		err = <-errChan
 		return *workloadList, err
 	}
@@ -160,6 +163,7 @@ func (in *WorkloadService) GetWorkloadList(ctx context.Context, criteria Workloa
 	for _, w := range ws {
 		wItem := &models.WorkloadListItem{}
 		wItem.ParseWorkload(w)
+		log.Infof("Get Workload Item: %+v", wItem)
 		if criteria.IncludeIstioResources {
 			wSelector := labels.Set(wItem.Labels).AsSelector().String()
 			wItem.IstioReferences = FilterUniqueIstioReferences(FilterWorkloadReferences(wSelector, istioConfigList))
@@ -615,9 +619,9 @@ func fetchWorkloads(ctx context.Context, layer *Layer, namespace string, labelSe
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := layer.Namespace.GetNamespace(ctx, namespace); err != nil {
-		return nil, err
-	}
+	// if _, err := layer.Namespace.GetNamespace(ctx, namespace); err != nil {
+	// 	return nil, err
+	// }
 
 	wg := sync.WaitGroup{}
 	wg.Add(9)
@@ -1187,9 +1191,9 @@ func fetchWorkload(ctx context.Context, layer *Layer, namespace string, workload
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := layer.Namespace.GetNamespace(ctx, namespace); err != nil {
-		return nil, err
-	}
+	// if _, err := layer.Namespace.GetNamespace(ctx, namespace); err != nil {
+	// 	return nil, err
+	// }
 
 	// Flag used for custom controllers
 	// i.e. a third party framework creates its own "Deployment" controller with extra features
@@ -1715,9 +1719,9 @@ func fetchWorkload(ctx context.Context, layer *Layer, namespace string, workload
 func updateWorkload(layer *Layer, namespace string, workloadName string, workloadType string, jsonPatch string) error {
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := layer.Namespace.GetNamespace(context.TODO(), namespace); err != nil {
-		return err
-	}
+	// if _, err := layer.Namespace.GetNamespace(context.TODO(), namespace); err != nil {
+	// 	return err
+	// }
 
 	workloadTypes := []string{
 		kubernetes.DeploymentType,

@@ -5,11 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"gopkg.in/yaml.v2"
-	v1 "k8s.io/api/apps/v1"
 	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -93,6 +91,7 @@ type meshIdConfig struct {
 func NewMeshService(k8s kubernetes.ClientInterface, layer *Layer, newRemoteClientFunc func(config *rest.Config) (kubernetes.ClientInterface, error)) MeshService {
 	if newRemoteClientFunc == nil {
 		newRemoteClientFunc = func(config *rest.Config) (kubernetes.ClientInterface, error) {
+			log.Infof("Crete Mesh Service Client")
 			return kubernetes.NewClientFromConfig(config)
 		}
 	}
@@ -193,38 +192,7 @@ func (in *MeshService) ResolveKialiControlPlaneCluster(r *http.Request) (*Cluste
 		return kialiControlPlaneCluster, nil
 	}
 
-	conf := config.Get()
-
-	// The "cluster_id" is set in an environment variable of
-	// the "istiod" deployment. Let's try to fetch it.
-	var istioDeployment *v1.Deployment
-	var err error
-	if IsNamespaceCached(conf.IstioNamespace) {
-		istioDeployment, err = kialiCache.GetDeployment(conf.IstioNamespace, conf.ExternalServices.Istio.IstiodDeploymentName)
-	} else {
-		istioDeployment, err = in.k8s.GetDeployment(conf.IstioNamespace, conf.ExternalServices.Istio.IstiodDeploymentName)
-	}
-	if err != nil && !errors.IsNotFound(err) {
-		return nil, err
-	}
-
-	if istioDeployment == nil {
-		kialiControlPlaneClusterCached = true
-		return nil, nil
-	}
-
-	if len(istioDeployment.Spec.Template.Spec.Containers) == 0 {
-		kialiControlPlaneClusterCached = true
-		return nil, nil
-	}
-
-	myClusterName := ""
-	for _, v := range istioDeployment.Spec.Template.Spec.Containers[0].Env {
-		if v.Name == "CLUSTER_ID" {
-			myClusterName = v.Value
-			break
-		}
-	}
+	myClusterName := "Kubernetes"
 
 	if len(myClusterName) == 0 {
 		// We didn't find it. This may mean that Istio is not setup with multi-cluster enabled.
@@ -245,14 +213,17 @@ func (in *MeshService) ResolveKialiControlPlaneCluster(r *http.Request) (*Cluste
 		return nil, err
 	}
 
-	var ctx context.Context
-	if r != nil {
-		ctx = r.Context()
-	} else {
-		ctx = context.Background()
-	}
 	// Discover ourselves
-	kialiInstances := findKialiInNamespace(ctx, os.Getenv("ACTIVE_NAMESPACE"), myClusterName, in.layer)
+	kialiINSTANCES := make([]KialiInstance, 1)
+	kialiInstance := KialiInstance{
+		ServiceName:      config.Get().Deployment.InstanceName,
+		Namespace:        config.Get().IstioNamespace,
+		OperatorResource: "",
+		Version:          "v1.54",
+		Url:              "",
+	}
+
+	kialiInstances := append(kialiINSTANCES, kialiInstance)
 	if len(kialiInstances) > 0 && r != nil {
 		for i := range kialiInstances {
 			// If URL is already populated (because of an annotation), trust that because it's user configuration.
@@ -267,7 +238,7 @@ func (in *MeshService) ResolveKialiControlPlaneCluster(r *http.Request) (*Cluste
 		ApiEndpoint:    restConfig.Host,
 		IsKialiHome:    true,
 		KialiInstances: kialiInstances,
-		Name:           myClusterName,
+		Name:           "Kubernetes",
 		Network:        kialiNetwork,
 		SecretName:     "",
 	}

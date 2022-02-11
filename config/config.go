@@ -281,6 +281,12 @@ type KubernetesConfig struct {
 	// can be skipped from Kiali workloads query if they are present in this list
 	ExcludeWorkloads []string `yaml:"excluded_workloads,omitempty"`
 	QPS              float32  `yaml:"qps,omitempty"`
+	// Configure APIServerServiceName and APIServerServicePort only work when out of cluster
+	APIServerServiceName string `yaml:"apiserver_service_name,omitempty"`
+	APIServerServicePort string `yaml:"apiserver_service_port,omitempty"`
+	// SecretPath the path of secret
+	SecretPath         string `yaml:"secret_path,omitempty"`
+	EnableCustomSecret string `yaml:"enable_custom_secret"`
 }
 
 // ApiConfig contains API specific configuration.

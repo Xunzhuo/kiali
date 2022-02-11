@@ -78,6 +78,7 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 		defer wg.Done()
 		var err2 error
 		apps, err2 = fetchNamespaceApps(ctx, in.businessLayer, namespace, "")
+		log.Infof("Get apps: %+v", apps)
 		if err2 != nil {
 			log.Errorf("Error fetching Applications per namespace %s: %s", namespace, err2)
 			errChan <- err2
@@ -102,6 +103,7 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 			defer wg.Done()
 			var err2 error
 			istioConfigList, err2 = in.businessLayer.IstioConfig.GetIstioConfigList(ctx, criteria)
+			log.Infof("Get istioConfigList in apps: %+v", istioConfigList)
 			if err2 != nil {
 				log.Errorf("Error fetching Istio Config per namespace %s: %s", namespace, err2)
 				errChan <- err2
@@ -111,6 +113,7 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 
 	wg.Wait()
 	if len(errChan) != 0 {
+		log.Info("Get APP Error")
 		err = <-errChan
 		return *appList, err
 	}
@@ -122,7 +125,9 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 		}
 		applabels := make(map[string][]string)
 		svcReferences := make([]*models.IstioValidationKey, 0)
+		log.Infof("app Item:%+v", appItem)
 		for _, srv := range valueApp.Services {
+			log.Infof("valueApp.Service:%+v", srv)
 			joinMap(applabels, srv.Labels)
 			if linkIstioResources {
 				vsFiltered := kubernetes.FilterVirtualServicesByService(istioConfigList.VirtualServices, srv.Namespace, srv.Name)
@@ -270,9 +275,9 @@ func fetchNamespaceApps(ctx context.Context, layer *Layer, namespace string, app
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := layer.Namespace.GetNamespace(ctx, namespace); err != nil {
-		return nil, err
-	}
+	// if _, err := layer.Namespace.GetNamespace(ctx, namespace); err != nil {
+	// 	return nil, err
+	// }
 
 	var err error
 	ws, err = fetchWorkloads(ctx, layer, namespace, appNameSelector)

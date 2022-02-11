@@ -93,22 +93,23 @@ func NewKialiCache() (KialiCache, error) {
 	// Cache will see what ServiceAccount can see, so when using OpenShift scenarios, user token is used to fetch the
 	// list of projects/namespaces a specific user can see. When using cache, business layer needs to check if a
 	// specific user can see a specific namespace
-	cacheToken := ""
+	// cacheToken := ""
 	kConfig := kialiConfig.Get()
-	if kConfig.InCluster {
-		if saToken, err := kubernetes.GetKialiToken(); err != nil {
-			return nil, err
-		} else {
-			cacheToken = saToken
-		}
-	}
+	// if kConfig.InCluster {
+	// 	if saToken, err := kubernetes.GetKialiToken(); err != nil {
+	// 		return nil, err
+	// 	} else {
+	// 		cacheToken = saToken
+	// 	}
+	// }
 	istioConfig := rest.Config{
 		Host:            config.Host,
 		TLSClientConfig: config.TLSClientConfig,
 		QPS:             config.QPS,
-		BearerToken:     cacheToken,
+		BearerToken:     config.BearerToken,
 		Burst:           config.Burst,
 	}
+	log.Infof("Rest Config is: %+v", istioConfig)
 	istioClient, err := kubernetes.NewClientFromConfig(&istioConfig)
 	if err != nil {
 		return nil, err

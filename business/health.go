@@ -191,9 +191,9 @@ func (in *HealthService) GetNamespaceServiceHealth(ctx context.Context, namespac
 	var err error
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
-		return nil, err
-	}
+	// if _, err := in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
+	// 	return nil, err
+	// }
 
 	criteria := ServiceCriteria{
 		Namespace:              namespace,
