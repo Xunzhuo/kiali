@@ -46,6 +46,7 @@ func (in *K8SClient) Istio() istio.Interface {
 
 func (in *K8SClient) getIstiodDebugStatus(debugPath string) (map[string][]byte, error) {
 	c := config.Get()
+
 	istioNamespace := c.IstioNamespace
 	istioDeploymentName := c.ExternalServices.Istio.IstiodDeploymentName
 	telemetryPort := c.ExternalServices.Istio.IstiodPodMonitoringPort

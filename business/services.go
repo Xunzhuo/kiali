@@ -292,6 +292,7 @@ func (in *SvcService) getClusterId() string {
 			log.Errorf("Cluster Id resolution failed: %s", err)
 		}
 	}
+	log.Infof("ClusterID is: %s", clusterId)
 	return clusterId
 }
 
