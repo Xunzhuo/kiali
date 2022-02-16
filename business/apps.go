@@ -78,6 +78,7 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 		defer wg.Done()
 		var err2 error
 		apps, err2 = fetchNamespaceApps(ctx, in.businessLayer, namespace, "")
+		log.Infof("Get apps: %v", apps)
 		if err2 != nil {
 			log.Errorf("Error fetching Applications per namespace %s: %s", namespace, err2)
 			errChan <- err2
@@ -102,6 +103,7 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 			defer wg.Done()
 			var err2 error
 			istioConfigList, err2 = in.businessLayer.IstioConfig.GetIstioConfigList(ctx, criteria)
+			log.Infof("Get istioConfigList in apps: %v", istioConfigList)
 			if err2 != nil {
 				log.Errorf("Error fetching Istio Config per namespace %s: %s", namespace, err2)
 				errChan <- err2
@@ -122,7 +124,9 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 		}
 		applabels := make(map[string][]string)
 		svcReferences := make([]*models.IstioValidationKey, 0)
+		log.Infof("app Item:%v", appItem)
 		for _, srv := range valueApp.Services {
+			log.Infof("valueApp.Service:%v", srv)
 			joinMap(applabels, srv.Labels)
 			if linkIstioResources {
 				vsFiltered := kubernetes.FilterVirtualServicesByService(istioConfigList.VirtualServices, srv.Namespace, srv.Name)
