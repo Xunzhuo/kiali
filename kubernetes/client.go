@@ -115,6 +115,7 @@ func ConfigClient() (*rest.Config, error) {
 		} else {
 			if kialiConfig.Get().KubernetesConfig.SecretPath != "" {
 				incluster, err = clientcmd.BuildConfigFromFlags("", kialiConfig.Get().KubernetesConfig.SecretPath)
+				log.Info("Create Client from CustomSecret")
 			} else {
 				incluster, err = rest.InClusterConfig()
 			}
