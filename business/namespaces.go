@@ -67,10 +67,13 @@ func (in *NamespaceService) GetNamespaces(ctx context.Context) ([]models.Namespa
 	defer end()
 
 	if kialiCache != nil {
+		log.Infof("Cache is not nil")
 		if ns := kialiCache.GetNamespaces(in.k8s.GetToken()); ns != nil {
 			return ns, nil
 		}
 	}
+
+	log.Infof("Cache is nil")
 
 	labelSelector := config.Get().API.Namespaces.LabelSelector
 
@@ -100,13 +103,17 @@ func (in *NamespaceService) GetNamespaces(ctx context.Context) ([]models.Namespa
 		accessibleNamespaces := config.Get().Deployment.AccessibleNamespaces
 		if queryAllNamespaces {
 			nss, err := in.k8s.GetNamespaces(labelSelector)
+			log.Infof("query namespaces all")
 			if err != nil {
 				// Fallback to using the Kiali service account, if needed
 				if errors.IsForbidden(err) {
+					log.Infof("request is forbiddened, got %v", err)
 					if nss, err = in.getNamespacesUsingKialiSA(labelSelector, err); err != nil {
+						log.Infof("try using kiali sa but still forbiddened, got %v", err)
 						return nil, err
 					}
 				} else {
+					log.Infof("request is not forbiddened but got :%v", err)
 					return nil, err
 				}
 			}

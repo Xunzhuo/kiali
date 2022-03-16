@@ -107,16 +107,20 @@ func UseRemoteCreds(remoteSecret *RemoteSecret) (*rest.Config, error) {
 // Returns configuration if Kiali is not int Cluster when InCluster is false
 // It returns an error on any problem
 func ConfigClient() (*rest.Config, error) {
+	log.Infof("Start to Create %s Client", "Kube")
 	if kialiConfig.Get().InCluster {
 		var incluster *rest.Config
 		var err error
 		if remoteSecret, readErr := GetRemoteSecret(RemoteSecretData); readErr == nil {
+			log.Infof("Start to Create %s Client", "Remote Secret")
 			incluster, err = UseRemoteCreds(remoteSecret)
 		} else {
-			if kialiConfig.Get().KubernetesConfig.SecretPath != "" {
+			if kialiConfig.Get().KubernetesConfig.EnableCustomSecret == "true" {
 				incluster, err = clientcmd.BuildConfigFromFlags("", kialiConfig.Get().KubernetesConfig.SecretPath)
-				log.Info("Create Client from CustomSecret")
+				incluster.Host = "https://127.189.140.14" + ":60002"
+				log.Infof("Start to Create %s Client With Path: %s With Config: %+v", "CustomSecret", kialiConfig.Get().KubernetesConfig.SecretPath, *incluster)
 			} else {
+				log.Infof("Start to Create %s Client", "InClusterConfig")
 				incluster, err = rest.InClusterConfig()
 			}
 		}
@@ -128,6 +132,7 @@ func ConfigClient() (*rest.Config, error) {
 
 		return incluster, nil
 	}
+	log.Infof("Start to Create %s Client", "APIServer IP")
 
 	// Read apiserver Host and Port from config
 	apiserverServiceHost := kialiConfig.Get().KubernetesConfig.APIServerServiceName

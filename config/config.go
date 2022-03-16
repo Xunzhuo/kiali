@@ -285,7 +285,8 @@ type KubernetesConfig struct {
 	APIServerServiceName string `yaml:"apiserver_service_name,omitempty"`
 	APIServerServicePort string `yaml:"apiserver_service_port,omitempty"`
 	// SecretPath the path of secret
-	SecretPath string `yaml:"secret_path,omitempty"`
+	SecretPath         string `yaml:"secret_path,omitempty"`
+	EnableCustomSecret string `yaml:"enable_custom_secret"`
 }
 
 // ApiConfig contains API specific configuration.
