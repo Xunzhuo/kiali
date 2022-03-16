@@ -154,6 +154,7 @@ func (in *K8SClient) GetNamespaces(labelSelector string) ([]core_v1.Namespace, e
 
 	namespaces, err := in.k8s.CoreV1().Namespaces().List(in.ctx, listOptions)
 	if err != nil {
+		log.Infof("List namespaces error: %v", err)
 		return nil, err
 	}
 

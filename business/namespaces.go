@@ -268,12 +268,12 @@ func (in *NamespaceService) UpdateNamespace(ctx context.Context, namespace strin
 func (in *NamespaceService) getNamespacesUsingKialiSA(labelSelector string, forwardedError error) ([]core_v1.Namespace, error) {
 	// Check if we already are using the Kiali ServiceAccount token. If we are, no need to do further processing, since
 	// this would just circle back to the same results.
+	log.Infof("Get NS Using Kiali SA")
 	if kialiToken, err := kubernetes.GetKialiToken(); err != nil {
 		return nil, err
 	} else if in.k8s.GetToken() == kialiToken {
 		return nil, forwardedError
 	}
-
 	// Let's get the namespaces list using the Kiali Service Account
 	nss, err := getNamespacesForKialiSA(labelSelector)
 	if err != nil {
@@ -297,6 +297,7 @@ func (in *NamespaceService) getNamespacesUsingKialiSA(labelSelector string, forw
 }
 
 func getNamespacesForKialiSA(labelSelector string) ([]core_v1.Namespace, error) {
+	log.Infof("getNamespacesForKialiSA NS Using Kiali SA")
 	clientFactory, err := kubernetes.GetClientFactory()
 	if err != nil {
 		return nil, err

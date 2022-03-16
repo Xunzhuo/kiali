@@ -91,6 +91,7 @@ type meshIdConfig struct {
 func NewMeshService(k8s kubernetes.ClientInterface, layer *Layer, newRemoteClientFunc func(config *rest.Config) (kubernetes.ClientInterface, error)) MeshService {
 	if newRemoteClientFunc == nil {
 		newRemoteClientFunc = func(config *rest.Config) (kubernetes.ClientInterface, error) {
+			log.Infof("Crete Mesh Service Client")
 			return kubernetes.NewClientFromConfig(config)
 		}
 	}

@@ -164,6 +164,8 @@ func NewClientFromConfig(config *rest.Config) (*K8SClient, error) {
 		token: config.BearerToken,
 	}
 
+	log.Infof("Created Config is: %+v", *config)
+
 	log.Debugf("Rest perf config QPS: %f Burst: %d", config.QPS, config.Burst)
 
 	k8s, err := kube.NewForConfig(config)
