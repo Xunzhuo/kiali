@@ -156,9 +156,9 @@ func (in *IstioConfigService) GetIstioConfigList(ctx context.Context, criteria I
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := in.businessLayer.Namespace.GetNamespace(ctx, criteria.Namespace); err != nil {
-		return models.IstioConfigList{}, err
-	}
+	// if _, err := in.businessLayer.Namespace.GetNamespace(ctx, criteria.Namespace); err != nil {
+	// 	return models.IstioConfigList{}, err
+	// }
 
 	isWorkloadSelector := criteria.WorkloadSelector != ""
 	workloadSelector := ""
@@ -424,9 +424,9 @@ func (in *IstioConfigService) GetIstioConfigDetails(ctx context.Context, namespa
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
-		return istioConfigDetail, err
-	}
+	// if _, err := in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
+	// 	return istioConfigDetail, err
+	// }
 
 	var wg sync.WaitGroup
 	wg.Add(1)

@@ -262,9 +262,16 @@ func NewOptions(r *net_http.Request) Options {
 				Duration: getSafeNamespaceDuration(namespaceToken, creationTime, time.Duration(duration), queryTime),
 				IsIstio:  config.IsIstioNamespace(namespaceToken),
 			}
-		} else {
-			Forbidden(fmt.Sprintf("Requested namespace [%s] is not accessible.", namespaceToken))
+		} else if !found {
+			namespaceMap[namespaceToken] = NamespaceInfo{
+				Name:     namespaceToken,
+				Duration: getSafeNamespaceDuration(namespaceToken, creationTime, time.Duration(duration), queryTime),
+				IsIstio:  config.IsIstioNamespace(namespaceToken),
+			}
 		}
+		// } else {
+		// 	Forbidden(fmt.Sprintf("Requested namespace [%s] is not accessible.", namespaceToken))
+		// }
 	}
 
 	// Process Rate Options
