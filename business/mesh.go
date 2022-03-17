@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v2"
+	v1 "k8s.io/api/apps/v1"
 	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -208,16 +209,16 @@ func (in *MeshService) ResolveKialiControlPlaneCluster(r *http.Request) (*Cluste
 	if err != nil && !errors.IsNotFound(err) {
 		return nil, err
 	}
-  
-  myClusterName := ""
-  
+
+	myClusterName := ""
+
 	if istioDeployment != nil && len(istioDeployment.Spec.Template.Spec.Containers) != 0 {
-    	for _, v := range istioDeployment.Spec.Template.Spec.Containers[0].Env {
-      if v.Name == "CLUSTER_ID" {
-        myClusterName = v.Value
-        break
-      }
-    }
+		for _, v := range istioDeployment.Spec.Template.Spec.Containers[0].Env {
+			if v.Name == "CLUSTER_ID" {
+				myClusterName = v.Value
+				break
+			}
+		}
 	}
 
 	if len(myClusterName) == 0 {
