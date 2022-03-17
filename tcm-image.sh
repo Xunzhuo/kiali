@@ -1,5 +1,4 @@
 # Build Kiali image for Tencent Cloud Mesh
-
 mkdir kiali_sources
 cd kiali_sources
 export KIALI_SOURCES=$(pwd)
@@ -13,7 +12,7 @@ make build test
 
 # Build the front-end and run the tests
 cd $KIALI_SOURCES/kiali-ui
-yarn && yarn build && yarn test
+yarn && yarn build
 
 export CLUSTER_TYPE=local
 export OPERATOR_CONTAINER_NAME=ccr.ccs.tencentyun.com/kiali/kiali-operator
