@@ -37,7 +37,7 @@ func NewDashboardsService(namespace *models.Namespace, workload *models.Workload
 	}
 	nsLabel := cfg.ExternalServices.CustomDashboards.NamespaceLabel
 	if nsLabel == "" {
-		nsLabel = "kubernetes_namespace"
+		nsLabel = "namespace"
 	}
 
 	// Overwrite Custom dashboards defined at Namespace level
@@ -383,6 +383,10 @@ func (in *DashboardsService) buildLabelsQueryString(namespace string, labelsFilt
 	for k, v := range labelsFilters {
 		labels += fmt.Sprintf(`,%s="%s"`, prometheus.SanitizeLabelName(k), v)
 	}
+	for labelName, labelValue := range in.promConfig.QueryScope {
+		labels += fmt.Sprintf(`,%s="%s"`, prometheus.SanitizeLabelName(labelName), labelValue)
+	}
+
 	labels += "}"
 	return labels
 }

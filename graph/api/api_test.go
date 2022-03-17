@@ -83,9 +83,12 @@ func setupMocked() (*prometheus.Client, *prometheustest.PromAPIMock, *kubetest.K
 	return client, api, k8s, nil
 }
 
-func setupMockedWithIstioComponentNamespaces() (*prometheus.Client, *prometheustest.PromAPIMock, *kubetest.K8SClientMock, error) {
+func setupMockedWithIstioComponentNamespaces(meshId string) (*prometheus.Client, *prometheustest.PromAPIMock, *kubetest.K8SClientMock, error) {
 	testConfig := config.NewConfig()
 	testConfig.KubernetesConfig.CacheEnabled = false
+	if meshId != "" {
+		testConfig.ExternalServices.Prometheus.QueryScope = map[string]string{"mesh_id": meshId}
+	}
 	config.Set(testConfig)
 	k8s := new(kubetest.K8SClientMock)
 
@@ -1066,13 +1069,13 @@ func TestAppGraph(t *testing.T) {
 		return
 	}
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 
@@ -1105,13 +1108,13 @@ func TestVersionedAppGraph(t *testing.T) {
 		return
 	}
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 
@@ -1144,13 +1147,13 @@ func TestServiceGraph(t *testing.T) {
 		return
 	}
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 
@@ -1183,13 +1186,13 @@ func TestWorkloadGraph(t *testing.T) {
 		return
 	}
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 
@@ -1222,13 +1225,13 @@ func TestRatesGraphSent(t *testing.T) {
 		return
 	}
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 
@@ -1261,13 +1264,13 @@ func TestRatesGraphReceived(t *testing.T) {
 		return
 	}
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 
@@ -1300,13 +1303,13 @@ func TestRatesGraphTotal(t *testing.T) {
 		return
 	}
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 
@@ -1339,13 +1342,13 @@ func TestRatesGraphNone(t *testing.T) {
 		return
 	}
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 
@@ -1615,13 +1618,13 @@ func TestWorkloadNodeGraph(t *testing.T) {
 	mockQuery(xapi, q2, &v2)
 	mockQuery(xapi, q3, &v3)
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/{namespace}/workloads/{workload}/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 
@@ -1891,13 +1894,13 @@ func TestAppNodeGraph(t *testing.T) {
 	mockQuery(xapi, q2, &v2)
 	mockQuery(xapi, q3, &v3)
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/{namespace}/applications/{app}/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 
@@ -2167,13 +2170,13 @@ func TestVersionedAppNodeGraph(t *testing.T) {
 	mockQuery(xapi, q2, &v2)
 	mockQuery(xapi, q3, &v3)
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/{namespace}/applications/{app}/versions/{version}/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 
@@ -2253,13 +2256,13 @@ func TestServiceNodeGraph(t *testing.T) {
 	mockQuery(xapi, q1, &v1)
 	mockQuery(xapi, q2, &v2)
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/{namespace}/services/{service}/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 
@@ -2620,13 +2623,13 @@ func TestRatesNodeGraphTotal(t *testing.T) {
 	mockQuery(xapi, q8, &v8)
 	mockQuery(xapi, q9, &v9)
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/{namespace}/workloads/{workload}/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 
@@ -2650,168 +2653,6 @@ func TestRatesNodeGraphTotal(t *testing.T) {
 		fmt.Printf("\nActual:\n%v", string(actual))
 	}
 	assert.Equal(t, 200, resp.StatusCode)
-
-	/*
-		q0 := `round(sum(rate(istio_requests_total{reporter="source",destination_workload="unknown",destination_service=~"^productpage\\.bookinfo\\..*$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
-		q0m0 := model.Metric{
-			"source_workload_namespace":      "bookinfo",
-			"source_workload":                "productpage-v1",
-			"source_canonical_service":       "productpage",
-			"source_canonical_revision":      "v1",
-			"destination_service_namespace":  "bankapp",
-			"destination_service":            "deposit:9080",
-			"destination_service_name":       "deposit",
-			"destination_workload_namespace": "bankapp",
-			"destination_workload":           "deposit-v1",
-			"destination_canonical_service":  "deposit",
-			"destination_canonical_revision": "v1",
-			"request_protocol":               "grpc",
-			"response_code":                  "200",
-			"grpc_response_status":           "0",
-			"response_flags":                 "-"}
-		v0 := model.Vector{&model.Sample{
-			Metric: q0m0,
-			Value:  100}}
-
-		q1 := `round(sum(rate(istio_requests_total{reporter="destination",destination_service_namespace="bookinfo",destination_service=~"^productpage\\.bookinfo\\..*$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
-		q1m0 := model.Metric{
-			"source_workload_namespace":      "istio-system",
-			"source_workload":                "ingressgateway-unknown",
-			"source_canonical_service":       "ingressgateway",
-			"source_canonical_revision":      "latest",
-			"destination_service_namespace":  "bookinfo",
-			"destination_service":            "productpage:9080",
-			"destination_service_name":       "productpage",
-			"destination_workload_namespace": "bookinfo",
-			"destination_workload":           "productpage-v1",
-			"destination_canonical_service":  "productpage",
-			"destination_canonical_revision": "v1",
-			"request_protocol":               "http",
-			"response_code":                  "200",
-			"grpc_response_status":           "0",
-			"response_flags":                 "-"}
-
-		v1 := model.Vector{
-			&model.Sample{
-				Metric: q1m0,
-				Value:  100}}
-
-		q2 := `round(sum(rate(istio_request_messages_total{reporter="destination",destination_service_namespace="bookinfo",destination_service=~"^productpage\\.bookinfo\\..*$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision) > 0,0.001)`
-		q2m0 := model.Metric{
-			"source_workload_namespace":      "istio-system",
-			"source_workload":                "ingressgateway-unknown",
-			"source_canonical_service":       "ingressgateway",
-			"source_canonical_revision":      "latest",
-			"destination_service_namespace":  "bookinfo",
-			"destination_service":            "productpage:9080",
-			"destination_service_name":       "productpage",
-			"destination_workload_namespace": "bookinfo",
-			"destination_workload":           "productpage-v1",
-			"destination_canonical_service":  "productpage",
-			"destination_canonical_revision": "v1"}
-		v2 := model.Vector{
-			&model.Sample{
-				Metric: q2m0,
-				Value:  31}}
-
-		q3 := `round(sum(rate(istio_request_messages_total{reporter="source",destination_service_namespace="bookinfo",destination_service=~"^productpage\\.bookinfo\\..*$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision) > 0,0.001)`
-		q3m0 := model.Metric{
-			"source_workload_namespace":      "istio-system",
-			"source_workload":                "ingressgateway-unknown",
-			"source_canonical_service":       "ingressgateway",
-			"source_canonical_revision":      "latest",
-			"destination_service_namespace":  "bookinfo",
-			"destination_service":            "productpage:9080",
-			"destination_service_name":       "productpage",
-			"destination_workload_namespace": "bookinfo",
-			"destination_workload":           "productpage-v1",
-			"destination_canonical_service":  "productpage",
-			"destination_canonical_revision": "v1",
-			"response_flags":                 "-"}
-		v3 := model.Vector{
-			&model.Sample{
-				Metric: q3m0,
-				Value:  62}}
-
-		q2 := `round(sum(rate(istio_tcp_sent_bytes_total{reporter="source",destination_service_namespace="bookinfo",destination_service=~"^productpage\\.bookinfo\\..*$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
-		q2m0 := model.Metric{
-			"source_workload_namespace":      "istio-system",
-			"source_workload":                "ingressgateway-unknown",
-			"source_canonical_service":       "ingressgateway",
-			"source_canonical_revision":      "latest",
-			"destination_service_namespace":  "bookinfo",
-			"destination_service":            "productpage:9080",
-			"destination_service_name":       "productpage",
-			"destination_workload_namespace": "bookinfo",
-			"destination_workload":           "productpage-v1",
-			"destination_canonical_service":  "productpage",
-			"destination_canonical_revision": "v1",
-			"response_flags":                 "-"}
-		v2 := model.Vector{
-			&model.Sample{
-				Metric: q2m0,
-				Value:  31}}
-
-		q3 := `round(sum(rate(istio_tcp_received_bytes_total{reporter="source",destination_service_namespace="bookinfo",destination_service=~"^productpage\\.bookinfo\\..*$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
-		q3m0 := model.Metric{
-			"source_workload_namespace":      "istio-system",
-			"source_workload":                "ingressgateway-unknown",
-			"source_canonical_service":       "ingressgateway",
-			"source_canonical_revision":      "latest",
-			"destination_service_namespace":  "bookinfo",
-			"destination_service":            "productpage:9080",
-			"destination_service_name":       "productpage",
-			"destination_workload_namespace": "bookinfo",
-			"destination_workload":           "productpage-v1",
-			"destination_canonical_service":  "productpage",
-			"destination_canonical_revision": "v1",
-			"response_flags":                 "-"}
-		v3 := model.Vector{
-			&model.Sample{
-				Metric: q3m0,
-				Value:  62}}
-
-		client, xapi, _, err := setupMocked()
-		if err != nil {
-			return
-		}
-
-		mockQuery(xapi, q0, &v0)
-		mockQuery(xapi, q1, &v1)
-		mockQuery(xapi, q2, &v2)
-		mockQuery(xapi, q3, &v3)
-
-		var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
-
-		mr := mux.NewRouter()
-		mr.HandleFunc("/api/namespaces/{namespace}/services/{service}/graph", http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
-				context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-				code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
-				respond(w, code, config)
-			}))
-
-		ts := httptest.NewServer(mr)
-		defer ts.Close()
-
-		fut = graphNodeIstio
-		url := ts.URL + "/api/namespaces/bookinfo/services/productpage/graph?graphType=workload&appenders&queryTime=1523364075"
-		resp, err := http.Get(url)
-		if err != nil {
-			t.Fatal(err)
-		}
-		actual, _ := ioutil.ReadAll(resp.Body)
-		expected, _ := ioutil.ReadFile("testdata/test_service_node_graph.expected")
-		if runtime.GOOS == "windows" {
-			expected = bytes.Replace(expected, []byte("\r\n"), []byte("\n"), -1)
-		}
-		expected = expected[:len(expected)-1] // remove EOF byte
-
-		if !assert.Equal(t, expected, actual) {
-			fmt.Printf("\nActual:\n%v", string(actual))
-		}
-		assert.Equal(t, 200, resp.StatusCode)
-	*/
 }
 
 // TestComplexGraph aims to provide test coverage for a more robust graph and specific corner cases. Listed below are coverage cases
@@ -2824,10 +2665,11 @@ func TestRatesNodeGraphTotal(t *testing.T) {
 // - bad source telemetry filtering
 // - workload -> egress -> service-entry traffic
 // - 0 response code (no response)
+// - queryScope
 // note: appenders still tested in separate unit tests given that they create their own new business/kube clients
 func TestComplexGraph(t *testing.T) {
 	// bookinfo
-	q0 := `round(sum(rate(istio_requests_total{reporter="source",source_workload_namespace!="bookinfo",destination_workload_namespace="unknown",destination_workload="unknown",destination_service=~"^.+\\.bookinfo\\..+$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
+	q0 := `round(sum(rate(istio_requests_total{mesh_id="mesh1",reporter="source",source_workload_namespace!="bookinfo",destination_workload_namespace="unknown",destination_workload="unknown",destination_service=~"^.+\\.bookinfo\\..+$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
 	q0m0 := model.Metric{ // outsider request that fails to reach workload
 		"source_cluster":                 "cluster-tutorial",
 		"source_workload_namespace":      "outsider",
@@ -2851,7 +2693,7 @@ func TestComplexGraph(t *testing.T) {
 			Value:  50},
 	}
 
-	q1 := `round(sum(rate(istio_requests_total{reporter="destination",destination_workload_namespace="bookinfo"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
+	q1 := `round(sum(rate(istio_requests_total{mesh_id="mesh1",reporter="destination",destination_workload_namespace="bookinfo"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
 	q1m0 := model.Metric{
 		"source_cluster":                 "unknown",
 		"source_workload_namespace":      "unknown",
@@ -2981,23 +2823,23 @@ func TestComplexGraph(t *testing.T) {
 			Value:  700},
 	}
 
-	q2 := `round(sum(rate(istio_requests_total{reporter="source",source_workload_namespace="bookinfo"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
+	q2 := `round(sum(rate(istio_requests_total{mesh_id="mesh1",reporter="source",source_workload_namespace="bookinfo"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
 	v2 := model.Vector{}
 
-	q3 := `round(sum(rate(istio_tcp_sent_bytes_total{reporter="source",source_workload_namespace!="bookinfo",destination_workload_namespace="unknown",destination_workload="unknown",destination_service=~"^.+\\.bookinfo\\..+$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
+	q3 := `round(sum(rate(istio_tcp_sent_bytes_total{mesh_id="mesh1",reporter="source",source_workload_namespace!="bookinfo",destination_workload_namespace="unknown",destination_workload="unknown",destination_service=~"^.+\\.bookinfo\\..+$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
 	v3 := model.Vector{}
 
-	q4 := `round(sum(rate(istio_tcp_sent_bytes_total{reporter="destination",destination_workload_namespace="bookinfo"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
+	q4 := `round(sum(rate(istio_tcp_sent_bytes_total{mesh_id="mesh1",reporter="destination",destination_workload_namespace="bookinfo"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
 	v4 := model.Vector{}
 
-	q5 := `round(sum(rate(istio_tcp_sent_bytes_total{reporter="source",source_workload_namespace="bookinfo"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
+	q5 := `round(sum(rate(istio_tcp_sent_bytes_total{mesh_id="mesh1",reporter="source",source_workload_namespace="bookinfo"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
 	v5 := model.Vector{}
 
 	// tutorial
-	q6 := `round(sum(rate(istio_requests_total{reporter="source",source_workload_namespace!="tutorial",destination_workload_namespace="unknown",destination_workload="unknown",destination_service=~"^.+\\.tutorial\\..+$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
+	q6 := `round(sum(rate(istio_requests_total{mesh_id="mesh1",reporter="source",source_workload_namespace!="tutorial",destination_workload_namespace="unknown",destination_workload="unknown",destination_service=~"^.+\\.tutorial\\..+$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
 	v6 := model.Vector{}
 
-	q7 := `round(sum(rate(istio_requests_total{reporter="destination",destination_workload_namespace="tutorial"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
+	q7 := `round(sum(rate(istio_requests_total{mesh_id="mesh1",reporter="destination",destination_workload_namespace="tutorial"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
 	q7m0 := model.Metric{
 		"source_cluster":                 "unknown",
 		"source_workload_namespace":      "unknown",
@@ -3043,7 +2885,7 @@ func TestComplexGraph(t *testing.T) {
 			Value:  50},
 	}
 
-	q8 := `round(sum(rate(istio_requests_total{reporter="source",source_workload_namespace="tutorial"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
+	q8 := `round(sum(rate(istio_requests_total{mesh_id="mesh1",reporter="source",source_workload_namespace="tutorial"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
 	q8m0 := model.Metric{
 		"source_cluster":                 "cluster-tutorial",
 		"source_workload_namespace":      "tutorial",
@@ -3212,23 +3054,23 @@ func TestComplexGraph(t *testing.T) {
 			Value:  700},
 	}
 
-	q9 := `round(sum(rate(istio_tcp_sent_bytes_total{reporter="source",source_workload_namespace!="tutorial",destination_workload_namespace="unknown",destination_workload="unknown",destination_service=~"^.+\\.tutorial\\..+$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
+	q9 := `round(sum(rate(istio_tcp_sent_bytes_total{mesh_id="mesh1",reporter="source",source_workload_namespace!="tutorial",destination_workload_namespace="unknown",destination_workload="unknown",destination_service=~"^.+\\.tutorial\\..+$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
 	v9 := model.Vector{}
 
-	q10 := `round(sum(rate(istio_tcp_sent_bytes_total{reporter="destination",destination_workload_namespace="tutorial"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
+	q10 := `round(sum(rate(istio_tcp_sent_bytes_total{mesh_id="mesh1",reporter="destination",destination_workload_namespace="tutorial"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
 	v10 := model.Vector{}
 
-	q11 := `round(sum(rate(istio_tcp_sent_bytes_total{reporter="source",source_workload_namespace="tutorial"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
+	q11 := `round(sum(rate(istio_tcp_sent_bytes_total{mesh_id="mesh1",reporter="source",source_workload_namespace="tutorial"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
 	v11 := model.Vector{}
 
 	// istio-system
-	q12 := `round(sum(rate(istio_requests_total{reporter="source",source_workload_namespace!="istio-system",destination_workload_namespace="unknown",destination_workload="unknown",destination_service=~"^.+\\.istio-system\\..+$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
+	q12 := `round(sum(rate(istio_requests_total{mesh_id="mesh1",reporter="source",source_workload_namespace!="istio-system",destination_workload_namespace="unknown",destination_workload="unknown",destination_service=~"^.+\\.istio-system\\..+$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
 	v12 := model.Vector{}
 
-	q13 := `round(sum(rate(istio_requests_total{reporter="destination",destination_workload_namespace="istio-system"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
+	q13 := `round(sum(rate(istio_requests_total{mesh_id="mesh1",reporter="destination",destination_workload_namespace="istio-system"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
 	v13 := model.Vector{}
 
-	q14 := `round(sum(rate(istio_requests_total{reporter="source",source_workload_namespace="istio-system"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
+	q14 := `round(sum(rate(istio_requests_total{mesh_id="mesh1",reporter="source",source_workload_namespace="istio-system"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,request_protocol,response_code,grpc_response_status,response_flags) > 0,0.001)`
 	q14m0 := model.Metric{ // good telem (service entry via egressgateway, the second hop)
 		"source_cluster":                 "cluster-cp",
 		"source_workload_namespace":      "istio-system",
@@ -3251,16 +3093,16 @@ func TestComplexGraph(t *testing.T) {
 			Metric: q14m0,
 			Value:  400}}
 
-	q15 := `round(sum(rate(istio_tcp_sent_bytes_total{reporter="source",source_workload_namespace!="istio-system",destination_workload_namespace="unknown",destination_workload="unknown",destination_service=~"^.+\\.istio-system\\..+$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
+	q15 := `round(sum(rate(istio_tcp_sent_bytes_total{mesh_id="mesh1",reporter="source",source_workload_namespace!="istio-system",destination_workload_namespace="unknown",destination_workload="unknown",destination_service=~"^.+\\.istio-system\\..+$"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
 	v15 := model.Vector{}
 
-	q16 := `round(sum(rate(istio_tcp_sent_bytes_total{reporter="destination",destination_workload_namespace="istio-system"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
+	q16 := `round(sum(rate(istio_tcp_sent_bytes_total{mesh_id="mesh1",reporter="destination",destination_workload_namespace="istio-system"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
 	v16 := model.Vector{}
 
-	q17 := `round(sum(rate(istio_tcp_sent_bytes_total{reporter="source",source_workload_namespace="istio-system"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
+	q17 := `round(sum(rate(istio_tcp_sent_bytes_total{mesh_id="mesh1",reporter="source",source_workload_namespace="istio-system"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) > 0,0.001)`
 	v17 := model.Vector{}
 
-	client, xapi, _, err := setupMockedWithIstioComponentNamespaces()
+	client, xapi, _, err := setupMockedWithIstioComponentNamespaces("mesh1")
 	if err != nil {
 		t.Error(err)
 		return
@@ -3284,13 +3126,13 @@ func TestComplexGraph(t *testing.T) {
 	mockQuery(xapi, q16, &v16)
 	mockQuery(xapi, q17, &v17)
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 
@@ -3559,7 +3401,7 @@ func TestMultiClusterSourceGraph(t *testing.T) {
 	q5 := `round(sum(rate(istio_tcp_sent_bytes_total{reporter="source",source_workload_namespace="bookinfo"} [600s])) by (source_cluster,source_workload_namespace,source_workload,source_canonical_service,source_canonical_revision,destination_cluster,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_canonical_service,destination_canonical_revision,response_flags) ,0.001)`
 	v5 := model.Vector{}
 
-	client, xapi, _, err := setupMockedWithIstioComponentNamespaces()
+	client, xapi, _, err := setupMockedWithIstioComponentNamespaces("")
 	if err != nil {
 		t.Error(err)
 		return
@@ -3571,13 +3413,13 @@ func TestMultiClusterSourceGraph(t *testing.T) {
 	mockQuery(xapi, q4, &v4)
 	mockQuery(xapi, q5, &v5)
 
-	var fut func(b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
+	var fut func(ctx context.Context, b *business.Layer, p *prometheus.Client, o graph.Options) (int, interface{})
 
 	mr := mux.NewRouter()
 	mr.HandleFunc("/api/namespaces/graph", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			context := context.WithValue(r.Context(), "authInfo", &api.AuthInfo{Token: "test"})
-			code, config := fut(nil, client, graph.NewOptions(r.WithContext(context)))
+			code, config := fut(context, nil, client, graph.NewOptions(r.WithContext(context)))
 			respond(w, code, config)
 		}))
 

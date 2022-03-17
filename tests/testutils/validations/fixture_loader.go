@@ -158,6 +158,16 @@ func (l YamlFixtureLoader) FindVirtualService(name, namespace string) *networkin
 	return nil
 }
 
+func (l YamlFixtureLoader) FindVirtualServiceIn(namespace string) []networking_v1alpha3.VirtualService {
+	vs := []networking_v1alpha3.VirtualService{}
+	for _, v := range l.istioConfigList.VirtualServices {
+		if v.Namespace == namespace {
+			vs = append(vs, v)
+		}
+	}
+	return vs
+}
+
 func (l YamlFixtureLoader) FindServiceEntry(name, namespace string) *networking_v1alpha3.ServiceEntry {
 	for _, v := range l.istioConfigList.ServiceEntries {
 		if v.Name == name && v.Namespace == namespace {
@@ -171,6 +181,24 @@ func (l YamlFixtureLoader) FindWorkloadEntry(name, namespace string) *networking
 	for _, v := range l.istioConfigList.WorkloadEntries {
 		if v.Name == name && v.Namespace == namespace {
 			return &v
+		}
+	}
+	return nil
+}
+
+func (l YamlFixtureLoader) FindSidecar(name, namespace string) *networking_v1alpha3.Sidecar {
+	for _, v := range l.istioConfigList.Sidecars {
+		if v.Name == name && v.Namespace == namespace {
+			return &v
+		}
+	}
+	return nil
+}
+
+func (l YamlFixtureLoader) FindPeerAuthentication(name, namespace string) *security_v1beta.PeerAuthentication {
+	for _, p := range l.istioConfigList.PeerAuthentications {
+		if p.Name == name && p.Namespace == namespace {
+			return &p
 		}
 	}
 	return nil

@@ -469,7 +469,7 @@ func (iv IstioValidations) MarshalJSON() ([]byte, error) {
 		if !ok {
 			out[k.ObjectType] = make(map[string]*IstioValidation)
 		}
-		out[k.ObjectType][k.Name] = v
+		out[k.ObjectType][k.Name+"."+k.Namespace] = v
 	}
 	return json.Marshal(out)
 }
@@ -486,7 +486,7 @@ func (iv *IstioValidations) StripIgnoredChecks() {
 				for _, cti := range codesToIgnore {
 					if cti == curCheck.Code {
 						ignoreCheck = true
-						log.Infof("Ignoring validation failure [%+v] for object [%s:%s] in namespace [%s]", curCheck, curValidationKey.ObjectType, curValidationKey.Name, curValidationKey.Namespace)
+						log.Debugf("Ignoring validation failure [%+v] for object [%s:%s] in namespace [%s]", curCheck, curValidationKey.ObjectType, curValidationKey.Name, curValidationKey.Namespace)
 						break
 					}
 				}

@@ -75,6 +75,7 @@ _
 | DELETE | /api/namespaces/{namespace}/istio/{object_type}/{object} | [istio config delete](#istio-config-delete) |  |
 | GET | /api/namespaces/{namespace}/istio/{object_type}/{object} | [istio config details](#istio-config-details) |  |
 | GET | /api/namespaces/{namespace}/istio | [istio config list](#istio-config-list) |  |
+| GET | /api/istio | [istio config list all](#istio-config-list-all) |  |
 | PATCH | /api/namespaces/{namespace}/istio/{object_type}/{object} | [istio config update](#istio-config-update) | Endpoint to update the Istio Config of an Istio object used for templates and adapters using Json Merge Patch strategy. |
   
 
@@ -630,6 +631,9 @@ Endpoint to get the list of apps for a namespace
 | Name | Source | Type | Go type | Separator | Required | Default | Description |
 |------|--------|------|---------|-----------| :------: |---------|-------------|
 | namespace | `path` | string | `string` |  | ✓ |  | The namespace name. |
+| QueryTime | `query` | date-time (formatted string) | `strfmt.DateTime` |  |  |  | The time to use for the prometheus query |
+| health | `query` | boolean | `bool` |  |  |  | Optional |
+| rateInterval | `query` | string | `string` |  |  | `"10m"` | The rate interval used for fetching error rate |
 
 #### All responses
 | Code | Status | Description | Has headers | Schema |
@@ -2736,6 +2740,66 @@ Status: Internal Server Error
 ###### Inlined models
 
 **<span id="istio-config-list-internal-server-error-body"></span> IstioConfigListInternalServerErrorBody**
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Code | int32 (formatted integer)| `int32` |  | `500`| HTTP status code | `500` |
+| Message | string| `string` |  | |  |  |
+
+
+
+### <span id="istio-config-list-all"></span> istio config list all (*istioConfigListAll*)
+
+```
+GET /api/istio
+```
+
+Endpoint to get the list of Istio Config of all namespaces
+
+#### URI Schemes
+  * http
+  * https
+
+#### Produces
+  * application/json
+
+#### All responses
+| Code | Status | Description | Has headers | Schema |
+|------|--------|-------------|:-----------:|--------|
+| [200](#istio-config-list-all-200) | OK | HTTP status code 200 and IstioConfigList model in data |  | [schema](#istio-config-list-all-200-schema) |
+| [500](#istio-config-list-all-500) | Internal Server Error | A Internal is the error message that means something has gone wrong |  | [schema](#istio-config-list-all-500-schema) |
+
+#### Responses
+
+
+##### <span id="istio-config-list-all-200"></span> 200 - HTTP status code 200 and IstioConfigList model in data
+Status: OK
+
+###### <span id="istio-config-list-all-200-schema"></span> Schema
+   
+  
+
+[IstioConfigList](#istio-config-list)
+
+##### <span id="istio-config-list-all-500"></span> 500 - A Internal is the error message that means something has gone wrong
+Status: Internal Server Error
+
+###### <span id="istio-config-list-all-500-schema"></span> Schema
+   
+  
+
+[IstioConfigListAllInternalServerErrorBody](#istio-config-list-all-internal-server-error-body)
+
+###### Inlined models
+
+**<span id="istio-config-list-all-internal-server-error-body"></span> IstioConfigListAllInternalServerErrorBody**
 
 
   
@@ -4871,6 +4935,9 @@ Endpoint to get the details of a given service
 | Name | Source | Type | Go type | Separator | Required | Default | Description |
 |------|--------|------|---------|-----------| :------: |---------|-------------|
 | namespace | `path` | string | `string` |  | ✓ |  | The namespace name. |
+| QueryTime | `query` | date-time (formatted string) | `strfmt.DateTime` |  |  |  | The time to use for the prometheus query |
+| health | `query` | boolean | `bool` |  |  |  | Optional |
+| rateInterval | `query` | string | `string` |  |  | `"10m"` | The rate interval used for fetching error rate |
 
 #### All responses
 | Code | Status | Description | Has headers | Schema |
@@ -5707,6 +5774,10 @@ Endpoint to get the list of workloads for a namespace
 | Name | Source | Type | Go type | Separator | Required | Default | Description |
 |------|--------|------|---------|-----------| :------: |---------|-------------|
 | namespace | `path` | string | `string` |  | ✓ |  | The namespace name. |
+| QueryTime | `query` | date-time (formatted string) | `strfmt.DateTime` |  |  |  | The time to use for the prometheus query |
+| health | `query` | boolean | `bool` |  |  |  | Optional |
+| rateInterval | `query` | string | `string` |  |  | `"10m"` | The rate interval used for fetching error rate |
+| type | `query` | string | `string` |  |  |  |  |
 
 #### All responses
 | Code | Status | Description | Has headers | Schema |
@@ -6338,6 +6409,7 @@ Required. |  |
 | IstioSidecar | boolean| `bool` | ✓ | | Define if all Pods related to the Workloads of this app has an IstioSidecar deployed | `true` |
 | Labels | map of string| `map[string]string` |  | | Labels for App |  |
 | Name | string| `string` | ✓ | | Name of the application | `reviews` |
+| health | [AppHealth](#app-health)| `AppHealth` |  | |  |  |
 
 
 
@@ -7499,6 +7571,7 @@ Can be True, False, Unknown. |  |
 
 | Name | Type | Go type | Required | Default | Description | Example |
 |------|------|---------|:--------:| ------- |-------------|---------|
+| IstioConfigHelpFields | [][IstioConfigHelp](#istio-config-help)| `[]*IstioConfigHelp` |  | |  |  |
 | ObjectType | string| `string` |  | |  |  |
 | authorizationPolicy | [AuthorizationPolicy](#authorization-policy)| `AuthorizationPolicy` |  | |  |  |
 | destinationRule | [DestinationRule](#destination-rule)| `DestinationRule` |  | |  |  |
@@ -7507,6 +7580,7 @@ Can be True, False, Unknown. |  |
 | namespace | [Namespace](#namespace)| `Namespace` |  | |  |  |
 | peerAuthentication | [PeerAuthentication](#peer-authentication)| `PeerAuthentication` |  | |  |  |
 | permissions | [ResourcePermissions](#resource-permissions)| `ResourcePermissions` |  | |  |  |
+| references | [IstioReferences](#istio-references)| `IstioReferences` |  | |  |  |
 | requestAuthentication | [RequestAuthentication](#request-authentication)| `RequestAuthentication` |  | |  |  |
 | serviceEntry | [ServiceEntry](#service-entry)| `ServiceEntry` |  | |  |  |
 | sidecar | [Sidecar](#sidecar)| `Sidecar` |  | |  |  |
@@ -7514,6 +7588,25 @@ Can be True, False, Unknown. |  |
 | virtualService | [VirtualService](#virtual-service)| `VirtualService` |  | |  |  |
 | workloadEntry | [WorkloadEntry](#workload-entry)| `WorkloadEntry` |  | |  |  |
 | workloadGroup | [WorkloadGroup](#workload-group)| `WorkloadGroup` |  | |  |  |
+
+
+
+### <span id="istio-config-help"></span> IstioConfigHelp
+
+
+> IstioConfigHelp represents a help message for a given Istio object type and field
+  
+
+
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Message | string| `string` |  | |  |  |
+| ObjectField | string| `string` |  | |  |  |
 
 
 
@@ -7572,6 +7665,43 @@ Can be True, False, Unknown. |  |
 | Name | Type | Go type | Required | Default | Description | Example |
 |------|------|---------|:--------:| ------- |-------------|---------|
 | IsMaistra | boolean| `bool` | ✓ | | If true, the Istio implementation is a variant of Maistra. |  |
+
+
+
+### <span id="istio-reference"></span> IstioReference
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Name | string| `string` |  | |  |  |
+| Namespace | string| `string` |  | |  |  |
+| ObjectType | string| `string` |  | |  |  |
+
+
+
+### <span id="istio-references"></span> IstioReferences
+
+
+> IstioReferences represents a sets of different references
+  
+
+
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| ObjectReferences | [][IstioReference](#istio-reference)| `[]*IstioReference` |  | | Related Istio objects |  |
+| ServiceReferences | [][ServiceReference](#service-reference)| `[]*ServiceReference` |  | | Related Istio objects |  |
+| WorkloadReferences | [][WorkloadReference](#workload-reference)| `[]*WorkloadReference` |  | | Related Istio objects |  |
 
 
 
@@ -8003,6 +8133,7 @@ This type is used to describe a set of objects.
 | HasTCPTrafficShifting | boolean| `bool` |  | |  |  |
 | HasTrafficShifting | boolean| `bool` |  | |  |  |
 | HasWorkloadEntry | [][WEInfo](#w-e-info)| `[]*WEInfo` |  | |  |  |
+| HealthData | [interface{}](#interface)| `interface{}` |  | |  |  |
 | ID | string| `string` |  | | Cytoscape Fields |  |
 | IsBox | string| `string` |  | |  |  |
 | IsDead | boolean| `bool` |  | |  |  |
@@ -8010,6 +8141,7 @@ This type is used to describe a set of objects.
 | IsInaccessible | boolean| `bool` |  | |  |  |
 | IsOutside | boolean| `bool` |  | |  |  |
 | IsRoot | boolean| `bool` |  | |  |  |
+| Labels | map of string| `map[string]string` |  | |  |  |
 | Namespace | string| `string` |  | |  |  |
 | NodeType | string| `string` |  | | App Fields (not required by Cytoscape) |  |
 | Parent | string| `string` |  | |  |  |
@@ -9202,6 +9334,23 @@ Kubernetes: 	is a service registry backed by k8s API server
 External: 	is a service registry for externally provided ServiceEntries
 Federation:  special case when registry is provided from a federated environment |  |
 | additionalDetailSample | [AdditionalItem](#additional-item)| `AdditionalItem` |  | |  |  |
+| health | [ServiceHealth](#service-health)| `ServiceHealth` |  | |  |  |
+
+
+
+### <span id="service-reference"></span> ServiceReference
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Name | string| `string` |  | |  |  |
+| Namespace | string| `string` |  | |  |  |
 
 
 
@@ -9910,6 +10059,7 @@ It's mapped as a pointer to show three values nil, true, false |  |
 | Type | string| `string` | ✓ | | Type of the workload | `deployment` |
 | VersionLabel | boolean| `bool` | ✓ | | Define if Pods related to this Workload has the label Version | `true` |
 | additionalDetailSample | [AdditionalItem](#additional-item)| `AdditionalItem` |  | |  |  |
+| health | [WorkloadHealth](#workload-health)| `WorkloadHealth` |  | |  |  |
 | pods | [Pods](#pods)| `Pods` |  | |  |  |
 | validations | [IstioValidations](#istio-validations)| `IstioValidations` |  | |  |  |
 
@@ -10319,6 +10469,7 @@ It's mapped as a pointer to show three values nil, true, false |  |
 | Type | string| `string` | ✓ | | Type of the workload | `deployment` |
 | VersionLabel | boolean| `bool` | ✓ | | Define if Pods related to this Workload has the label Version | `true` |
 | additionalDetailSample | [AdditionalItem](#additional-item)| `AdditionalItem` |  | |  |  |
+| health | [WorkloadHealth](#workload-health)| `WorkloadHealth` |  | |  |  |
 
 
 
@@ -10328,6 +10479,22 @@ It's mapped as a pointer to show three values nil, true, false |  |
   
 
 [][WorkloadListItem](#workload-list-item)
+
+### <span id="workload-reference"></span> WorkloadReference
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Name | string| `string` |  | |  |  |
+| Namespace | string| `string` |  | |  |  |
+
+
 
 ### <span id="workload-status"></span> WorkloadStatus
 

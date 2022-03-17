@@ -33,7 +33,6 @@ const (
 	BoxByCluster              string = "cluster"
 	BoxByNamespace            string = "namespace"
 	BoxByNone                 string = "none"
-	NamespaceIstio            string = "istio-system"
 	RateNone                  string = "none"
 	RateReceived              string = "received" // tcp bytes received, grpc response messages, etc
 	RateRequests              string = "requests" // request count
@@ -150,7 +149,6 @@ func NewOptions(r *net_http.Request) Options {
 		}
 		appenders = RequestedAppenders{All: false, AppenderNames: appenderNames}
 	}
-
 	if cluster == "" {
 		cluster = Unknown
 	}
@@ -168,6 +166,7 @@ func NewOptions(r *net_http.Request) Options {
 			BadRequest(fmt.Sprintf("Invalid duration [%s]", durationString))
 		}
 	}
+
 	if graphType == "" {
 		graphType = defaultGraphType
 	} else if graphType != GraphTypeApp && graphType != GraphTypeService && graphType != GraphTypeVersionedApp && graphType != GraphTypeWorkload {

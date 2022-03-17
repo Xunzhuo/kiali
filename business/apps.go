@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
 
@@ -21,6 +22,14 @@ type AppService struct {
 	prom          prometheus.ClientInterface
 	k8s           kubernetes.ClientInterface
 	businessLayer *Layer
+}
+
+type AppCriteria struct {
+	Namespace             string
+	IncludeIstioResources bool
+	Health                bool
+	RateInterval          string
+	QueryTime             time.Time
 }
 
 func joinMap(m1 map[string][]string, m2 map[string]string) {
@@ -48,17 +57,19 @@ func buildFinalLabels(m map[string][]string) map[string]string {
 }
 
 // GetAppList is the API handler to fetch the list of applications in a given namespace
-func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIstioResources bool) (models.AppList, error) {
+func (in *AppService) GetAppList(ctx context.Context, criteria AppCriteria) (models.AppList, error) {
 	var end observability.EndFunc
 	ctx, end = observability.StartSpan(ctx, "GetAppList",
 		observability.Attribute("package", "business"),
-		observability.Attribute("namespace", namespace),
-		observability.Attribute("linkIstioResources", linkIstioResources),
+		observability.Attribute("namespace", criteria.Namespace),
+		observability.Attribute("linkIstioResources", criteria.IncludeIstioResources),
+		observability.Attribute("rateInterval", criteria.RateInterval),
+		observability.Attribute("queryTime", criteria.QueryTime),
 	)
 	defer end()
 
 	appList := &models.AppList{
-		Namespace: models.Namespace{Name: namespace},
+		Namespace: models.Namespace{Name: criteria.Namespace},
 		Apps:      []models.AppListItem{},
 	}
 
@@ -66,7 +77,7 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 	var apps namespaceApps
 
 	nFetches := 1
-	if linkIstioResources {
+	if criteria.IncludeIstioResources {
 		nFetches = 2
 	}
 
@@ -77,16 +88,15 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 	go func(ctx context.Context) {
 		defer wg.Done()
 		var err2 error
-		apps, err2 = fetchNamespaceApps(ctx, in.businessLayer, namespace, "")
-		log.Infof("Get apps: %+v", apps)
+		apps, err2 = fetchNamespaceApps(ctx, in.businessLayer, criteria.Namespace, "")
 		if err2 != nil {
-			log.Errorf("Error fetching Applications per namespace %s: %s", namespace, err2)
+			log.Errorf("Error fetching Applications per namespace %s: %s", criteria.Namespace, err2)
 			errChan <- err2
 		}
 	}(ctx)
 
-	criteria := IstioConfigCriteria{
-		Namespace:                     namespace,
+	icCriteria := IstioConfigCriteria{
+		Namespace:                     criteria.Namespace,
 		IncludeAuthorizationPolicies:  true,
 		IncludeDestinationRules:       true,
 		IncludeEnvoyFilters:           true,
@@ -98,14 +108,13 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 	}
 	var istioConfigList models.IstioConfigList
 
-	if linkIstioResources {
+	if criteria.IncludeIstioResources {
 		go func(ctx context.Context) {
 			defer wg.Done()
 			var err2 error
-			istioConfigList, err2 = in.businessLayer.IstioConfig.GetIstioConfigList(ctx, criteria)
-			log.Infof("Get istioConfigList in apps: %+v", istioConfigList)
+			istioConfigList, err2 = in.businessLayer.IstioConfig.GetIstioConfigList(ctx, icCriteria)
 			if err2 != nil {
-				log.Errorf("Error fetching Istio Config per namespace %s: %s", namespace, err2)
+				log.Errorf("Error fetching Istio Config per namespace %s: %s", criteria.Namespace, err2)
 				errChan <- err2
 			}
 		}(ctx)
@@ -122,6 +131,7 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 		appItem := &models.AppListItem{
 			Name:         keyApp,
 			IstioSidecar: true,
+			Health:       models.EmptyAppHealth(),
 		}
 		applabels := make(map[string][]string)
 		svcReferences := make([]*models.IstioValidationKey, 0)
@@ -129,7 +139,7 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 		for _, srv := range valueApp.Services {
 			log.Infof("valueApp.Service:%+v", srv)
 			joinMap(applabels, srv.Labels)
-			if linkIstioResources {
+			if criteria.IncludeIstioResources {
 				vsFiltered := kubernetes.FilterVirtualServicesByService(istioConfigList.VirtualServices, srv.Namespace, srv.Name)
 				for _, v := range vsFiltered {
 					ref := models.BuildKey(v.Kind, v.Name, v.Namespace)
@@ -153,7 +163,7 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 		wkdReferences := make([]*models.IstioValidationKey, 0)
 		for _, wrk := range valueApp.Workloads {
 			joinMap(applabels, wrk.Labels)
-			if linkIstioResources {
+			if criteria.IncludeIstioResources {
 				wSelector := labels.Set(wrk.Labels).AsSelector().String()
 				wkdReferences = append(wkdReferences, FilterWorkloadReferences(wSelector, istioConfigList)...)
 			}
@@ -166,6 +176,12 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 				break
 			}
 		}
+		if criteria.Health {
+			appItem.Health, err = in.businessLayer.Health.GetAppHealth(ctx, criteria.Namespace, appItem.Name, criteria.RateInterval, criteria.QueryTime)
+			if err != nil {
+				log.Errorf("Error fetching Health in namespace %s for app %s: %s", criteria.Namespace, appItem.Name, err)
+			}
+		}
 		(*appList).Apps = append((*appList).Apps, *appItem)
 	}
 
@@ -175,7 +191,7 @@ func (in *AppService) GetAppList(ctx context.Context, namespace string, linkIsti
 // GetApp is the API handler to fetch the details for a given namespace and app name
 func (in *AppService) GetApp(ctx context.Context, namespace string, appName string) (models.App, error) {
 	var end observability.EndFunc
-	ctx, end = observability.StartSpan(ctx, "GetAppList",
+	ctx, end = observability.StartSpan(ctx, "GetApp",
 		observability.Attribute("package", "business"),
 		observability.Attribute("namespace", namespace),
 		observability.Attribute("appName", appName),
@@ -292,6 +308,7 @@ func fetchNamespaceApps(ctx context.Context, layer *Layer, namespace string, app
 			IncludeIstioResources:  false,
 			IncludeOnlyDefinitions: true,
 			ServiceSelector:        labels.Set(w.Labels).String(),
+			Health:                 false,
 		}
 		ss, err = layer.Svc.GetServiceList(ctx, criteria)
 		if err != nil {

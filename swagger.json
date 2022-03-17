@@ -224,6 +224,30 @@
         }
       }
     },
+    "/istio": {
+      "get": {
+        "description": "Endpoint to get the list of Istio Config of all namespaces",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "config"
+        ],
+        "operationId": "istioConfigListAll",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/istioConfigList"
+          },
+          "500": {
+            "$ref": "#/responses/internalError"
+          }
+        }
+      }
+    },
     "/istio/certs": {
       "get": {
         "description": "Get certificates (internal) information used by Istio",
@@ -1174,6 +1198,28 @@
         ],
         "operationId": "appList",
         "parameters": [
+          {
+            "type": "string",
+            "default": "10m",
+            "x-go-name": "RateInterval",
+            "description": "The rate interval used for fetching error rate",
+            "name": "rateInterval",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time to use for the prometheus query",
+            "name": "QueryTime",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "x-go-name": "Health",
+            "description": "Optional",
+            "name": "health",
+            "in": "query"
+          },
           {
             "type": "string",
             "x-go-name": "Name",
@@ -2487,6 +2533,28 @@
         "parameters": [
           {
             "type": "string",
+            "default": "10m",
+            "x-go-name": "RateInterval",
+            "description": "The rate interval used for fetching error rate",
+            "name": "rateInterval",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time to use for the prometheus query",
+            "name": "QueryTime",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "x-go-name": "Health",
+            "description": "Optional",
+            "name": "health",
+            "in": "query"
+          },
+          {
+            "type": "string",
             "x-go-name": "Name",
             "description": "The namespace name.",
             "name": "namespace",
@@ -3263,6 +3331,34 @@
         ],
         "operationId": "workloadList",
         "parameters": [
+          {
+            "type": "string",
+            "default": "10m",
+            "x-go-name": "RateInterval",
+            "description": "The rate interval used for fetching error rate",
+            "name": "rateInterval",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time to use for the prometheus query",
+            "name": "QueryTime",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "x-go-name": "WorkloadType",
+            "name": "type",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "x-go-name": "Health",
+            "description": "Optional",
+            "name": "health",
+            "in": "query"
+          },
           {
             "type": "string",
             "x-go-name": "Name",
@@ -4262,6 +4358,9 @@
         "istioSidecar"
       ],
       "properties": {
+        "health": {
+          "$ref": "#/definitions/AppHealth"
+        },
         "istioReferences": {
           "description": "Istio References",
           "type": "array",
@@ -5315,6 +5414,13 @@
         "gateway": {
           "$ref": "#/definitions/Gateway"
         },
+        "help": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IstioConfigHelp"
+          },
+          "x-go-name": "IstioConfigHelpFields"
+        },
         "namespace": {
           "$ref": "#/definitions/namespace"
         },
@@ -5327,6 +5433,9 @@
         },
         "permissions": {
           "$ref": "#/definitions/ResourcePermissions"
+        },
+        "references": {
+          "$ref": "#/definitions/IstioReferences"
         },
         "requestAuthentication": {
           "$ref": "#/definitions/RequestAuthentication"
@@ -5348,6 +5457,21 @@
         },
         "workloadGroup": {
           "$ref": "#/definitions/WorkloadGroup"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "IstioConfigHelp": {
+      "description": "IstioConfigHelp represents a help message for a given Istio object type and field",
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "objectField": {
+          "type": "string",
+          "x-go-name": "ObjectField"
         }
       },
       "x-go-package": "github.com/kiali/kiali/models"
@@ -5468,6 +5592,56 @@
         }
       },
       "x-go-package": "github.com/kiali/kiali/status"
+    },
+    "IstioReference": {
+      "type": "object",
+      "title": "IstioReference is the key value composed of an Istio ObjectType and Name.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
+        "objectType": {
+          "type": "string",
+          "x-go-name": "ObjectType"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "IstioReferences": {
+      "description": "IstioReferences represents a sets of different references",
+      "type": "object",
+      "properties": {
+        "objectReferences": {
+          "description": "Related Istio objects",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IstioReference"
+          },
+          "x-go-name": "ObjectReferences"
+        },
+        "serviceReferences": {
+          "description": "Related Istio objects",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceReference"
+          },
+          "x-go-name": "ServiceReferences"
+        },
+        "workloadReferences": {
+          "description": "Related Istio objects",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkloadReference"
+          },
+          "x-go-name": "WorkloadReferences"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
     },
     "IstioStatus": {
       "type": "object",
@@ -6054,6 +6228,10 @@
           },
           "x-go-name": "HasWorkloadEntry"
         },
+        "healthData": {
+          "type": "object",
+          "x-go-name": "HealthData"
+        },
         "id": {
           "description": "Cytoscape Fields",
           "type": "string",
@@ -6088,6 +6266,13 @@
         },
         "isServiceEntry": {
           "$ref": "#/definitions/SEInfo"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Labels"
         },
         "namespace": {
           "type": "string",
@@ -7079,6 +7264,9 @@
           "x-go-name": "AppLabel",
           "example": true
         },
+        "health": {
+          "$ref": "#/definitions/ServiceHealth"
+        },
         "healthAnnotations": {
           "description": "Annotations of the service",
           "type": "object",
@@ -7137,6 +7325,21 @@
           "description": "ServiceRegistry values:\nKubernetes: \tis a service registry backed by k8s API server\nExternal: \tis a service registry for externally provided ServiceEntries\nFederation:  special case when registry is provided from a federated environment",
           "type": "string",
           "x-go-name": "ServiceRegistry"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "ServiceReference": {
+      "type": "object",
+      "title": "ServiceReference is the key value composed of a Name and Namespace.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
         }
       },
       "x-go-package": "github.com/kiali/kiali/models"
@@ -7723,6 +7926,9 @@
           "x-go-name": "DesiredReplicas",
           "example": 2
         },
+        "health": {
+          "$ref": "#/definitions/WorkloadHealth"
+        },
         "healthAnnotations": {
           "description": "HealthAnnotations",
           "type": "object",
@@ -8157,6 +8363,9 @@
           },
           "x-go-name": "DashboardAnnotations"
         },
+        "health": {
+          "$ref": "#/definitions/WorkloadHealth"
+        },
         "healthAnnotations": {
           "description": "HealthAnnotations",
           "type": "object",
@@ -8238,6 +8447,21 @@
       "type": "array",
       "items": {
         "$ref": "#/definitions/WorkloadListItem"
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "WorkloadReference": {
+      "type": "object",
+      "title": "WorkloadReference is the key value composed of a Name and Namespace.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        }
       },
       "x-go-package": "github.com/kiali/kiali/models"
     },

@@ -141,29 +141,6 @@ func NewRoutes() (r *Routes) {
 			handlers.AuthenticationInfo,
 			false,
 		},
-		// swagger:route GET /auth/openid_redirect auth openidRedirect
-		// ---
-		// Endpoint to redirect the browser of the user to the authentication
-		// endpoint of the configured OpenId provider.
-		//
-		//     Consumes:
-		//     - application/json
-		//
-		//     Produces:
-		//     - application/html
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      500: internalError
-		//      200: noContent
-		{
-			"AuthenticationInfo",
-			"GET",
-			"/api/auth/openid_redirect",
-			handlers.OpenIdRedirect,
-			false,
-		},
 		// swagger:route GET /status status getStatus
 		// ---
 		// Endpoint to get the status of Kiali
@@ -238,6 +215,26 @@ func NewRoutes() (r *Routes) {
 			"IstioConfigList",
 			"GET",
 			"/api/namespaces/{namespace}/istio",
+			handlers.IstioConfigList,
+			true,
+		},
+		// swagger:route GET /istio config istioConfigListAll
+		// ---
+		// Endpoint to get the list of Istio Config of all namespaces
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      500: internalError
+		//      200: istioConfigList
+		//
+		{
+			"IstioConfigListAll",
+			"GET",
+			"/api/istio/config",
 			handlers.IstioConfigList,
 			true,
 		},

@@ -4,11 +4,19 @@ package istio
 // Istio.go is responsible for generating TrafficMaps using Istio telemetry.  It implements the
 // TelemetryVendor interface.
 //
-// The algorithm is two-pass:
-//   First Pass: Query Prometheus (istio-requests-total metric) to retrieve the source-destination
-//               dependencies. Build a traffic map to provide a full representation of nodes and edges.
+// The algorithm:
+//   Step 1) For each namespace:
+//     a) Query Prometheus (istio-requests-total metric) to retrieve the source-destination
+//        dependencies. Build a traffic map to provide a full representation of nodes and edges.
 //
-//   Second Pass: Apply any requested appenders to alter or append to the graph.
+//     b) Apply any requested appenders to alter or append-to the namespace traffic-map.
+//
+//     c) Merge the namespace traffic-map into the final traffic-map
+//
+//   Step 2) For the global traffic map
+//     a) Apply standard and requested finalizers to alter or append-to the final traffic-map
+//
+//     b) Convert the final traffic-map to the requested vendor configiration (i.e. Cytoscape) and return
 //
 // Supports three vendor-specific query parameters:
 //   aggregate: Must be a valid metric attribute (default: request_operation)
@@ -48,27 +56,29 @@ var (
 func BuildNamespacesTrafficMap(o graph.TelemetryOptions, client *prometheus.Client, globalInfo *graph.AppenderGlobalInfo) graph.TrafficMap {
 	log.Tracef("Build [%s] graph for [%d] namespaces [%v]", o.GraphType, len(o.Namespaces), o.Namespaces)
 
-	appenders := appender.ParseAppenders(o)
+	appenders, finalizers := appender.ParseAppenders(o)
 	trafficMap := graph.NewTrafficMap()
 
 	for _, namespace := range o.Namespaces {
 		log.Tracef("Build traffic map for namespace [%v]", namespace)
 		namespaceTrafficMap := buildNamespaceTrafficMap(namespace.Name, o, client)
+
+		// The appenders can add/remove/alter nodes for the namespace
 		namespaceInfo := graph.NewAppenderNamespaceInfo(namespace.Name)
 		for _, a := range appenders {
 			appenderTimer := internalmetrics.GetGraphAppenderTimePrometheusTimer(a.Name())
 			a.AppendGraph(namespaceTrafficMap, globalInfo, namespaceInfo)
 			appenderTimer.ObserveDuration()
 		}
+
+		// Merge this namespace into the final TrafficMap
 		telemetry.MergeTrafficMaps(trafficMap, namespace.Name, namespaceTrafficMap)
 	}
 
-	// The appenders can add/remove/alter nodes. After the manipulations are complete
-	// we can make some final adjustments:
-	// - mark the outsiders (i.e. nodes not in the requested namespaces)
-	// - mark the insider traffic generators (i.e. inside the namespace and only outgoing edges)
-	telemetry.MarkOutsideOrInaccessible(trafficMap, o)
-	telemetry.MarkTrafficGenerators(trafficMap)
+	// The finalizers can perform final manipulations on the complete graph
+	for _, f := range finalizers {
+		f.AppendGraph(trafficMap, globalInfo, nil)
+	}
 
 	if graph.GraphTypeService == o.GraphType {
 		trafficMap = telemetry.ReduceToServiceGraph(trafficMap)
@@ -425,7 +435,7 @@ func BuildNodeTrafficMap(o graph.TelemetryOptions, client *prometheus.Client, gl
 
 	log.Tracef("Build graph for node [%+v]", n)
 
-	appenders := appender.ParseAppenders(o)
+	appenders, finalizers := appender.ParseAppenders(o)
 	trafficMap := buildNodeTrafficMap(o.Cluster, o.NodeOptions.Namespace, n, o, client)
 
 	namespaceInfo := graph.NewAppenderNamespaceInfo(o.NodeOptions.Namespace)
@@ -436,12 +446,10 @@ func BuildNodeTrafficMap(o graph.TelemetryOptions, client *prometheus.Client, gl
 		appenderTimer.ObserveDuration()
 	}
 
-	// The appenders can add/remove/alter nodes. After the manipulations are complete
-	// we can make some final adjustments:
-	// - mark the outsiders (i.e. nodes not in the requested namespaces)
-	// - mark the traffic generators
-	telemetry.MarkOutsideOrInaccessible(trafficMap, o)
-	telemetry.MarkTrafficGenerators(trafficMap)
+	// The finalizers can perform final manipulations on the complete graph
+	for _, f := range finalizers {
+		f.AppendGraph(trafficMap, globalInfo, nil)
+	}
 
 	// Note that this is where we would call reduceToServiceGraph for graphTypeService but
 	// the current decision is to not reduce the node graph to provide more detail.  This may be
@@ -808,7 +816,7 @@ func handleAggregateNodeTrafficMap(o graph.TelemetryOptions, client *prometheus.
 	if !o.Appenders.All {
 		o.Appenders.AppenderNames = append(o.Appenders.AppenderNames, appender.AggregateNodeAppenderName)
 	}
-	appenders := appender.ParseAppenders(o)
+	appenders, finalizers := appender.ParseAppenders(o)
 	trafficMap := buildAggregateNodeTrafficMap(o.NodeOptions.Namespace, n, o, client)
 
 	namespaceInfo := graph.NewAppenderNamespaceInfo(o.NodeOptions.Namespace)
@@ -819,12 +827,10 @@ func handleAggregateNodeTrafficMap(o graph.TelemetryOptions, client *prometheus.
 		appenderTimer.ObserveDuration()
 	}
 
-	// The appenders can add/remove/alter nodes. After the manipulations are complete
-	// we can make some final adjustments:
-	// - mark the outsiders (i.e. nodes not in the requested namespaces)
-	// - mark the traffic generators
-	telemetry.MarkOutsideOrInaccessible(trafficMap, o)
-	telemetry.MarkTrafficGenerators(trafficMap)
+	// The finalizers can perform final manipulations on the complete graph
+	for _, f := range finalizers {
+		f.AppendGraph(trafficMap, globalInfo, nil)
+	}
 
 	return trafficMap
 }
@@ -877,6 +883,9 @@ func promQuery(query string, queryTime time.Time, api prom_v1.API) model.Vector 
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// add scope if necessary
+	query = util.AddQueryScope(query)
 
 	// wrap with a round() to be in line with metrics api
 	query = fmt.Sprintf("round(%s,0.001)", query)

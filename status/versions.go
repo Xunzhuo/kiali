@@ -109,21 +109,171 @@ func validateVersion(requiredVersion string, installedVersion string) bool {
 	return false
 }
 
+// CheckMeshVersion check mesh if its version is compatible with kiali
+func CheckMeshVersion(meshName string, meshVersion string, kialiVersion string) bool {
+	ok := false
+	if meshName == istioProductNameUnknown {
+		return ok
+	}
+	if strings.Contains(meshName, istioProductNameUpstream) {
+		ok = checkIstioVersion(meshVersion, kialiVersion)
+		return ok
+	} else if strings.Contains(meshName, istioProductNameMaistra) {
+		ok = checkMaistraVersion(meshVersion, kialiVersion)
+		return ok
+	} else if strings.Contains(meshName, istioProductNameOSSM) {
+		ok = checkOSSMVersion(meshVersion, kialiVersion)
+		return ok
+	}
+	return ok
+}
+
+// checkOSSMVersion check OpenShift Service Mesh if its version is compatible with kiali. There is a 1-to-1 relationship between compatible versions.
+// So there is no range checking. The kiali minimum version is checked (kiali maximum version is ignored).
+func checkOSSMVersion(ossmVersion string, kialiVersion string) bool {
+	ok := false
+	matrix, err := config.NewCompatibilityMatrix()
+
+	if err != nil {
+		return ok
+	}
+
+	for _, version := range matrix {
+		if version.MeshName == istioProductNameOSSM {
+			for _, versions := range version.VersionRange {
+				if ossmVersion == strings.TrimSpace(versions.MeshVersion) && kialiVersion == strings.TrimSpace(versions.KialiMinimumVersion) {
+					ok = true
+					break
+				}
+			}
+		}
+	}
+
+	return ok
+}
+
+// checkMaistraVersion check Maistra if its version is compatible with kiali. There is a 1-to-1 relationship between compatible versions.
+// So there is no range checking. The kiali minimum version is checked (kiali maximum version is ignored).
+func checkMaistraVersion(maistraVersion string, kialiVersion string) bool {
+	ok := false
+	matrix, err := config.NewCompatibilityMatrix()
+
+	if err != nil {
+		return ok
+	}
+
+	for _, version := range matrix {
+		if version.MeshName == istioProductNameMaistra {
+			for _, versions := range version.VersionRange {
+				if maistraVersion == strings.TrimSpace(versions.MeshVersion) && kialiVersion == strings.TrimSpace(versions.KialiMinimumVersion) {
+					ok = true
+					break
+				}
+			}
+		}
+	}
+
+	return ok
+}
+
+// checkIstioVersion check istio if its version is compatible with kiali
+func checkIstioVersion(istioVersion string, kialiVersion string) bool {
+	ok := false
+	matrix, err := config.NewCompatibilityMatrix()
+
+	if err != nil {
+		return ok
+	}
+
+	for _, version := range matrix {
+		if version.MeshName == istioProductNameUpstream {
+			for _, versions := range version.VersionRange {
+				if strings.Contains(istioVersion, versions.MeshVersion) {
+					minimumVersion := strings.TrimSpace(versions.KialiMinimumVersion)
+					maximumVersion := strings.TrimSpace(versions.KialiMaximumVersion)
+					ok = checkRange(minimumVersion, maximumVersion, kialiVersion)
+					break
+				}
+			}
+		}
+	}
+	return ok
+}
+
+// checkRange check if version is in target range
+func checkRange(low string, high string, version string) bool {
+	ok := true
+	ok1 := true
+	if low == high {
+		equal := "== " + low
+		ok = validateVersion(equal, version)
+		return ok
+	}
+
+	if low != "" {
+		low = ">= " + low
+		ok = validateVersion(low, version)
+	}
+
+	if high != "" {
+		high = "<= " + high
+		ok1 = validateVersion(high, version)
+	}
+	return ok && ok1
+}
+
+// CheckVersionCompatibility check mesh name/version compatibility with kiali
+// Only log warnings one time when starting kiali up
+func CheckVersionCompatibility() {
+	istioInfo, err := istioVersion()
+	if err != nil {
+		log.Warning(err)
+	} else if istioInfo.Name == istioProductNameUnknown {
+		log.Warning("Unknown Istio implementation version " + istioInfo.Version + " is not recognized, thus not supported.")
+	} else {
+		log.Infof("Mesh Name: [%v], Mesh Version: [%v]", istioInfo.Name, istioInfo.Version)
+	}
+}
+
 // istioVersion returns the current istio version information
+// add warnings when mesh version is incompatible with kiali
 func istioVersion() (*ExternalServiceInfo, error) {
 	istioConfig := config.Get().ExternalServices.Istio
 	body, code, err := httputil.HttpGet(istioConfig.UrlServiceVersion, nil, 10*time.Second, nil)
+
+	configWarnings := "failed to get mesh version, please check if url_service_version is configured correctly."
+
 	if err != nil {
-		return nil, err
+		AddWarningMessages(configWarnings)
+		return nil, fmt.Errorf(configWarnings)
 	}
 	if code >= 400 {
-		return nil, fmt.Errorf("getting istio version returned error code %d", code)
+		return nil, fmt.Errorf("getting istio version returned error code [%d]", code)
 	}
 	rawVersion := string(body)
-	return parseIstioRawVersion(rawVersion)
+
+	istioInfo := parseIstioRawVersion(rawVersion)
+	meshName, meshVersion := istioInfo.Name, istioInfo.Version
+	status := GetStatus()
+	kialiVersion := status[CoreVersion]
+
+	compatibleWarnings := fmt.Sprintf("Kiali [%v] may not be compatible with [%v %v], and is not recommended. See kiali.io for version compatibility",
+		kialiVersion, meshName, meshVersion)
+
+	if ok := CheckMeshVersion(meshName, meshVersion, kialiVersion); ok {
+		Put(MeshVersion, meshVersion)
+		Put(MeshName, meshName)
+	} else {
+		Put(MeshVersion, meshVersion)
+		Put(MeshName, meshName)
+		AddWarningMessages(compatibleWarnings)
+		return nil, fmt.Errorf(compatibleWarnings)
+	}
+
+	return istioInfo, nil
 }
 
-func parseIstioRawVersion(rawVersion string) (*ExternalServiceInfo, error) {
+func parseIstioRawVersion(rawVersion string) *ExternalServiceInfo {
 	product := ExternalServiceInfo{Name: "Unknown", Version: "Unknown"}
 
 	// First see if we detect Maistra (either product or upstream project).
@@ -136,12 +286,9 @@ func parseIstioRawVersion(rawVersion string) (*ExternalServiceInfo, error) {
 		if len(maistraVersionStringArr) > 1 {
 			product.Name = istioProductNameMaistra
 			product.Version = maistraVersionStringArr[1] // get regex group #1 ,which is the "#.#.#" version string
-			if !validateVersion(config.MaistraVersionSupported, product.Version) {
-				info.WarningMessages = append(info.WarningMessages, "Maistra version "+product.Version+" is not supported, the version should be "+config.MaistraVersionSupported)
-			}
 
 			// we know this is Maistra - either a supported or unsupported version - return now
-			return &product, nil
+			return &product
 		}
 	}
 
@@ -151,12 +298,9 @@ func parseIstioRawVersion(rawVersion string) (*ExternalServiceInfo, error) {
 		if len(maistraVersionStringArr) > 1 {
 			product.Name = istioProductNameMaistraProject
 			product.Version = maistraVersionStringArr[1] // get regex group #1 ,which is the "#.#.#" version string
-			if !validateVersion(config.MaistraVersionSupported, product.Version) {
-				info.WarningMessages = append(info.WarningMessages, "Maistra project version "+product.Version+" is not supported, the version should be "+config.MaistraVersionSupported)
-			}
 
 			// we know this is Maistra - either a supported or unsupported version - return now
-			return &product, nil
+			return &product
 		}
 	}
 
@@ -167,12 +311,9 @@ func parseIstioRawVersion(rawVersion string) (*ExternalServiceInfo, error) {
 		if len(ossmStringArr) > 1 {
 			product.Name = istioProductNameOSSM
 			product.Version = ossmStringArr[1] // get regex group #1 ,which is the "#.#.#" version string
-			if !validateVersion(config.OSSMVersionSupported, product.Version) {
-				info.WarningMessages = append(info.WarningMessages, "OpenShift Service Mesh version "+product.Version+" is not supported, the version should be "+config.OSSMVersionSupported)
-			}
 
 			// we know this is OpenShift Service Mesh - either a supported or unsupported version - return now
-			return &product, nil
+			return &product
 		}
 	}
 
@@ -185,11 +326,9 @@ func parseIstioRawVersion(rawVersion string) (*ExternalServiceInfo, error) {
 			majorMinor := istioVersionStringArr[1]  // regex group #1 is the "#.#" version numbers
 			snapshotStr := istioVersionStringArr[2] // regex group #2 is the date/time stamp
 			product.Version = majorMinor + snapshotStr
-			if !validateVersion(config.IstioVersionSupported, majorMinor) {
-				info.WarningMessages = append(info.WarningMessages, "Istio snapshot version "+product.Version+" is not supported, the version should be "+config.IstioVersionSupported)
-			}
+
 			// we know this is Istio upstream - either a supported or unsupported version - return now
-			return &product, nil
+			return &product
 		}
 	}
 
@@ -202,11 +341,9 @@ func parseIstioRawVersion(rawVersion string) (*ExternalServiceInfo, error) {
 			majorMinor := istioVersionStringArr[1] // regex group #1 is the "#.#.#" version numbers
 			rc := istioVersionStringArr[2]         // regex group #2 is the alpha or beta version
 			product.Version = fmt.Sprintf("%s (%s)", majorMinor, rc)
-			if !validateVersion(config.IstioVersionSupported, majorMinor) {
-				info.WarningMessages = append(info.WarningMessages, "Istio release candidate version "+product.Version+" is not supported, the version should be "+config.IstioVersionSupported)
-			}
+
 			// we know this is Istio upstream - either a supported or unsupported version - return now
-			return &product, nil
+			return &product
 		}
 	}
 
@@ -219,21 +356,17 @@ func parseIstioRawVersion(rawVersion string) (*ExternalServiceInfo, error) {
 			majorMinor := istioVersionStringArr[1] // regex group #1 is the "#.#" version numbers
 			buildHash := istioVersionStringArr[2]  // regex group #2 is the build hash
 			product.Version = fmt.Sprintf("%s (dev %s)", majorMinor, buildHash)
-			if !validateVersion(config.IstioVersionSupported, majorMinor) {
-				info.WarningMessages = append(info.WarningMessages, "Istio dev version "+product.Version+" is not supported, the version should be "+config.IstioVersionSupported)
-			}
+
 			// we know this is Istio upstream - either a supported or unsupported version - return now
-			return &product, nil
+			return &product
 		} else if strings.Contains(istioVersionStringArr[0], "dev") && len(istioVersionStringArr) > 4 {
 			product.Name = istioProductNameUpstreamDev
 			majorMinor := istioVersionStringArr[3] // regex group #3 is the "#.#" version numbers
 			buildHash := istioVersionStringArr[4]  // regex group #4 is the build hash
 			product.Version = fmt.Sprintf("%s (dev %s)", majorMinor, buildHash)
-			if !validateVersion(config.IstioVersionSupported, majorMinor) {
-				info.WarningMessages = append(info.WarningMessages, "Istio dev version "+product.Version+" is not supported, the version should be "+config.IstioVersionSupported)
-			}
+
 			// we know this is Istio upstream - either a supported or unsupported version - return now
-			return &product, nil
+			return &product
 		}
 	}
 
@@ -244,19 +377,16 @@ func parseIstioRawVersion(rawVersion string) (*ExternalServiceInfo, error) {
 		if len(istioVersionStringArr) > 1 {
 			product.Name = istioProductNameUpstream
 			product.Version = istioVersionStringArr[1] // get regex group #1 ,which is the "#.#.#" version string
-			if !validateVersion(config.IstioVersionSupported, product.Version) {
-				info.WarningMessages = append(info.WarningMessages, "Istio version "+product.Version+" is not supported, the version should be "+config.IstioVersionSupported)
-			}
+
 			// we know this is Istio upstream - either a supported or unsupported version - return now
-			return &product, nil
+			return &product
 		}
 	}
 
 	log.Debugf("Detected unknown Istio implementation version [%v]", rawVersion)
 	product.Name = istioProductNameUnknown
 	product.Version = rawVersion
-	info.WarningMessages = append(info.WarningMessages, "Unknown Istio implementation version "+product.Version+" is not recognized, thus not supported.")
-	return &product, nil
+	return &product
 }
 
 type p8sResponseVersion struct {

@@ -90,6 +90,11 @@ func main() {
 	status.Put(status.CoreCommitHash, commitHash)
 	status.Put(status.ContainerVersion, determineContainerVersion(version))
 
+	// CheckVersionCompatibility check kiali version compatibility with mesh.
+	// The user session is not affected no matter what this check returns, just warning logs.
+	// The complete compatible version matrix is recorded in version-compatibility-matrix.yaml
+	status.CheckVersionCompatibility()
+
 	authentication.InitializeAuthenticationController(config.Get().Auth.Strategy)
 
 	// prepare our internal metrics so Prometheus can scrape them
@@ -170,7 +175,7 @@ func validateConfig() error {
 
 	// log a warning if the user is ignoring some validations
 	if len(cfg.KialiFeatureFlags.Validations.Ignore) > 0 {
-		log.Warningf("Some validation errors will be ignored %v. If these errors do occur, they will still be logged. If you think the validation errors you see are incorrect, please report them to the Kiali team if you have not done so already and provide the details of your scenario. This will keep Kiali validations strong for the whole community.", cfg.KialiFeatureFlags.Validations.Ignore)
+		log.Infof("Some validation errors will be ignored %v. If these errors do occur, they will still be logged. If you think the validation errors you see are incorrect, please report them to the Kiali team if you have not done so already and provide the details of your scenario. This will keep Kiali validations strong for the whole community.", cfg.KialiFeatureFlags.Validations.Ignore)
 	}
 
 	return nil

@@ -6,6 +6,8 @@ const (
 	ContainerVersion = name + " container version"
 	ConsoleVersion   = name + " console version"
 	CoreVersion      = name + " core version"
+	MeshName         = "Mesh name"
+	MeshVersion      = "Mesh version"
 	CoreCommitHash   = name + " core commit hash"
 	State            = name + " state"
 	ClusterMTLS      = "Istio mTLS"
@@ -86,6 +88,11 @@ func Put(name, value string) (previous string, hasPrevious bool) {
 	return previous, hasPrevious
 }
 
+// AddWarningMessages add warning messages to status
+func AddWarningMessages(warningMessages string) {
+	info.WarningMessages = append(info.WarningMessages, warningMessages)
+}
+
 // Get returns a copy of the current status info.
 func Get() (status StatusInfo) {
 	info.ExternalServices = []ExternalServiceInfo{}
@@ -107,6 +114,11 @@ func Get() (status StatusInfo) {
 	}
 
 	return info
+}
+
+// GetStatus returns current status
+func GetStatus() map[string]string {
+	return info.Status
 }
 
 // IsMaistra returns true if we are running in a Maistra environment

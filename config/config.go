@@ -1,7 +1,9 @@
 package config
 
 import (
+	"embed"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"sort"
@@ -27,13 +29,6 @@ const (
 
 	// Login Token signing key used to prepare the token for user login
 	EnvLoginTokenSigningKey = "LOGIN_TOKEN_SIGNING_KEY"
-)
-
-// The versions that Kiali requires
-const (
-	IstioVersionSupported   = ">= 1.0"
-	MaistraVersionSupported = ">= 0.7.0"
-	OSSMVersionSupported    = ">= 1.0"
 )
 
 // The valid auth strategies and values for cookie handling
@@ -131,16 +126,14 @@ type ThanosProxy struct {
 
 // PrometheusConfig describes configuration of the Prometheus component
 type PrometheusConfig struct {
-	Auth Auth `yaml:"auth,omitempty"`
-	// Cache duration per query expressed in seconds
-	CacheDuration int `yaml:"cache_duration,omitempty"`
-	// Enable cache for Prometheus queries
-	CacheEnabled bool `yaml:"cache_enabled,omitempty"`
-	// Global cache expiration expressed in seconds
-	CacheExpiration int               `yaml:"cache_expiration,omitempty"`
+	Auth            Auth              `yaml:"auth,omitempty"`
+	CacheDuration   int               `yaml:"cache_duration,omitempty"`   // Cache duration per query expressed in seconds
+	CacheEnabled    bool              `yaml:"cache_enabled,omitempty"`    // Enable cache for Prometheus queries
+	CacheExpiration int               `yaml:"cache_expiration,omitempty"` // Global cache expiration expressed in seconds
 	CustomHeaders   map[string]string `yaml:"custom_headers,omitempty"`
 	HealthCheckUrl  string            `yaml:"health_check_url,omitempty"`
 	IsCore          bool              `yaml:"is_core,omitempty"`
+	QueryScope      map[string]string `yaml:"query_scope,omitempty"`
 	ThanosProxy     ThanosProxy       `yaml:"thanos_proxy,omitempty"`
 	URL             string            `yaml:"url,omitempty"`
 }
@@ -437,6 +430,39 @@ type HealthConfig struct {
 	Rate []Rate `yaml:"rate,omitempty" json:"rate,omitempty"`
 }
 
+//go:embed *
+var compatibilityMatrixFile embed.FS
+
+// CompatibilityMatric version ranges for compatibility details between Istio and Kiali
+type CompatibilityMatrix []struct {
+	MeshName     string `yaml:"meshName"`
+	VersionRange []struct {
+		MeshVersion         string `yaml:"meshVersion"`
+		KialiMinimumVersion string `yaml:"kialiMinimumVersion"`
+		KialiMaximumVersion string `yaml:"kialiMaximumVersion"`
+	} `yaml:"versionRange"`
+}
+
+// NewCompatibilityMatrix return compatible kiali versions for mesh
+func NewCompatibilityMatrix() (CompatibilityMatrix, error) {
+
+	in, err := fs.ReadFile(compatibilityMatrixFile, "version-compatibility-matrix.yaml")
+	if err != nil {
+		log.Warningf("Can not load compatibility matrix file. Error: %v", err)
+		return nil, err
+	}
+
+	var matrix CompatibilityMatrix
+
+	err = yaml.Unmarshal(in, &matrix)
+	if err != nil {
+		log.Warningf("Can not unmarshal compatibility matrix file. Error: %v", err)
+		return nil, err
+	}
+
+	return matrix, nil
+}
+
 // Config defines full YAML configuration.
 type Config struct {
 	AdditionalDisplayDetails []AdditionalDisplayItem             `yaml:"additional_display_details,omitempty"`
@@ -508,7 +534,7 @@ func NewConfig() (c *Config) {
 				DiscoveryAutoThreshold: 10,
 				Enabled:                true,
 				IsCore:                 false,
-				NamespaceLabel:         "kubernetes_namespace",
+				NamespaceLabel:         "namespace",
 				Prometheus: PrometheusConfig{
 					ThanosProxy: ThanosProxy{
 						Enabled: false,
@@ -559,18 +585,19 @@ func NewConfig() (c *Config) {
 				Auth: Auth{
 					Type: AuthTypeNone,
 				},
+				// 1/2 Prom Scrape Interval
+				CacheDuration: 7,
+				CacheEnabled:  true,
+				// Prom Cache expires and it forces to repopulate cache
+				CacheExpiration: 300,
+				CustomHeaders:   map[string]string{},
+				QueryScope:      map[string]string{},
 				ThanosProxy: ThanosProxy{
 					Enabled:         false,
 					RetentionPeriod: "7d",
 					ScrapeInterval:  "30s",
 				},
-				CacheEnabled: true,
-				// 1/2 Prom Scrape Interval
-				CacheDuration: 7,
-				// Prom Cache expires and it forces to repopulate cache
-				CacheExpiration: 300,
-				CustomHeaders:   map[string]string{},
-				URL:             "http://prometheus.istio-system:9090",
+				URL: "http://prometheus.istio-system:9090",
 			},
 			Tracing: TracingConfig{
 				Auth: Auth{

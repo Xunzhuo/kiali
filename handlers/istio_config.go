@@ -28,6 +28,11 @@ func IstioConfigList(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	allNamespaces := false
+	if namespace == "" {
+		allNamespaces = true
+	}
+
 	includeValidations := false
 	if _, found := query["validate"]; found {
 		includeValidations = true
@@ -43,7 +48,7 @@ func IstioConfigList(w http.ResponseWriter, r *http.Request) {
 		workloadSelector = query.Get("workloadSelector")
 	}
 
-	criteria := business.ParseIstioConfigCriteria(namespace, objects, labelSelector, workloadSelector)
+	criteria := business.ParseIstioConfigCriteria(namespace, objects, labelSelector, workloadSelector, allNamespaces)
 
 	// Get business layer
 	business, err := getBusiness(r)
@@ -99,6 +104,11 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 		includeValidations = true
 	}
 
+	includeHelp := false
+	if _, found := query["help"]; found {
+		includeHelp = true
+	}
+
 	if !checkObjectType(objectType) {
 		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
 		return
@@ -112,28 +122,37 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var istioConfigValidations models.IstioValidations
+	var istioConfigReferences models.IstioReferencesMap
 
 	wg := sync.WaitGroup{}
 	if includeValidations {
 		wg.Add(1)
-		go func(istioConfigValidations *models.IstioValidations, err *error) {
+		go func(istioConfigValidations *models.IstioValidations, istioConfigReferences *models.IstioReferencesMap, err *error) {
 			defer wg.Done()
-			istioConfigValidationResults, errValidations := business.Validations.GetIstioObjectValidations(r.Context(), namespace, objectType, object)
+			istioConfigValidationResults, istioConfigReferencesResults, errValidations := business.Validations.GetIstioObjectValidations(r.Context(), namespace, objectType, object)
 			if errValidations != nil && *err == nil {
 				*err = errValidations
 			} else {
 				*istioConfigValidations = istioConfigValidationResults
+				*istioConfigReferences = istioConfigReferencesResults
 			}
-		}(&istioConfigValidations, &err)
+		}(&istioConfigValidations, &istioConfigReferences, &err)
 	}
 
 	istioConfigDetails, err := business.IstioConfig.GetIstioConfigDetails(context.TODO(), namespace, objectType, object)
+
+	if includeHelp {
+		istioConfigDetails.IstioConfigHelpFields = models.IstioConfigHelpMessages[objectType]
+	}
 
 	if includeValidations && err == nil {
 		wg.Wait()
 
 		if validation, found := istioConfigValidations[models.IstioValidationKey{ObjectType: models.ObjectTypeSingular[objectType], Namespace: namespace, Name: object}]; found {
 			istioConfigDetails.IstioValidation = validation
+		}
+		if references, found := istioConfigReferences[models.IstioReferenceKey{ObjectType: models.ObjectTypeSingular[objectType], Namespace: namespace, Name: object}]; found {
+			istioConfigDetails.IstioReferences = references
 		}
 	}
 

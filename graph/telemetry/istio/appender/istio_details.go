@@ -31,6 +31,11 @@ func (a IstioAppender) Name() string {
 	return IstioAppenderName
 }
 
+// IsFinalizer implements Appender
+func (a IstioAppender) IsFinalizer() bool {
+	return false
+}
+
 // AppendGraph implements Appender
 func (a IstioAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) {
 	if len(trafficMap) == 0 {
@@ -286,7 +291,7 @@ func (a IstioAppender) getIngressGatewayWorkloads(globalInfo *graph.AppenderGlob
 func (a IstioAppender) getIstioComponentWorkloads(component string, globalInfo *graph.AppenderGlobalInfo) map[string][]models.WorkloadListItem {
 	componentWorkloads := make(map[string][]models.WorkloadListItem)
 	for namespace := range a.AccessibleNamespaces {
-		criteria := business.WorkloadCriteria{Namespace: namespace, IncludeIstioResources: false}
+		criteria := business.WorkloadCriteria{Namespace: namespace, IncludeIstioResources: false, Health: false}
 		wList, err := globalInfo.Business.Workload.GetWorkloadList(context.TODO(), criteria)
 		graph.CheckError(err)
 

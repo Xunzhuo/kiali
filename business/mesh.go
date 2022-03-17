@@ -192,12 +192,37 @@ func (in *MeshService) ResolveKialiControlPlaneCluster(r *http.Request) (*Cluste
 		return kialiControlPlaneCluster, nil
 	}
 
-	myClusterName := "Kubernetes"
+	conf := config.Get()
+
+	// The "cluster_id" is set in an environment variable of
+	// the "istiod" deployment. Let's try to fetch it.
+	var istioDeployment *v1.Deployment
+	var istioDeploymentConfig = conf.ExternalServices.Istio.IstiodDeploymentName
+	var err error
+
+	if IsNamespaceCached(conf.IstioNamespace) {
+		istioDeployment, err = kialiCache.GetDeployment(conf.IstioNamespace, istioDeploymentConfig)
+	} else {
+		istioDeployment, err = in.k8s.GetDeployment(conf.IstioNamespace, istioDeploymentConfig)
+	}
+	if err != nil && !errors.IsNotFound(err) {
+		return nil, err
+	}
+  
+  myClusterName := ""
+  
+	if istioDeployment != nil && len(istioDeployment.Spec.Template.Spec.Containers) != 0 {
+    	for _, v := range istioDeployment.Spec.Template.Spec.Containers[0].Env {
+      if v.Name == "CLUSTER_ID" {
+        myClusterName = v.Value
+        break
+      }
+    }
+	}
 
 	if len(myClusterName) == 0 {
 		// We didn't find it. This may mean that Istio is not setup with multi-cluster enabled.
-		kialiControlPlaneClusterCached = true
-		return nil, nil
+		myClusterName = "Kubernetes"
 	}
 
 	// Since this is dealing with the "home" cluster, we assume that the API Endpoint
