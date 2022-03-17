@@ -23,4 +23,4 @@ export QUAY_NAME=ccr.ccs.tencentyun.com/kiali/kiali
 cd $KIALI_SOURCES/kiali
 
 # Build the Kiali-server and Kiali-operator container images and push them to the cluster
-make CONTAINER_VERSION=tcm-1.48 build container-build container-push
+make CONTAINER_VERSION=tcm-1.48.1 build container-build-kiali container-push-kiali-quay
