@@ -3,7 +3,7 @@ mkdir kiali_sources
 cd kiali_sources
 export KIALI_SOURCES=$(pwd)
 
-git clone https://git.woa.com/bitliu/kiali.git -b tcm-1.48
+git clone https://git.woa.com/bitliu/kiali.git -b tcm
 git clone https://github.com/kiali/kiali-ui.git
 
 # Build the back-end and run the tests
