@@ -117,7 +117,9 @@ func ConfigClient() (*rest.Config, error) {
 		} else {
 			if kialiConfig.Get().KubernetesConfig.EnableCustomSecret == "true" {
 				incluster, err = clientcmd.BuildConfigFromFlags("", kialiConfig.Get().KubernetesConfig.SecretPath)
-				incluster.Host = "https://mesh-proxy-cls-prlvfir5" + ":60002"
+				clusterID := kialiConfig.Get().ExternalServices.Istio.ClusterID
+				incluster.Host = "https://" + "mesh-proxy-" + clusterID + ":60002"
+				log.Infof("Host is: %s", incluster.Host)
 				log.Infof("Start to Create %s Client With Path: %s With Config: %+v", "CustomSecret", kialiConfig.Get().KubernetesConfig.SecretPath, *incluster)
 			} else {
 				log.Infof("Start to Create %s Client", "InClusterConfig")

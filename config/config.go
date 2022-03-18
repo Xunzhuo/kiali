@@ -198,6 +198,7 @@ type IstioConfig struct {
 	IstiodPodMonitoringPort           int                 `yaml:"istiod_pod_monitoring_port,omitempty"`
 	RootNamespace                     string              `yaml:"root_namespace,omitempty"`
 	UrlServiceVersion                 string              `yaml:"url_service_version"`
+	ClusterID                         string              `yaml:"cluster_id"`
 }
 
 type IstioCanaryRevision struct {
