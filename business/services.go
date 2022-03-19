@@ -187,6 +187,12 @@ func (in *SvcService) GetServiceList(ctx context.Context, criteria ServiceCriter
 		}
 	}
 
+	log.Infof("%+v in %s", *services, services.Namespace.Name)
+
+	for _, svc := range services.Services {
+		log.Infof("%+v", svc)
+	}
+
 	return services, nil
 }
 
