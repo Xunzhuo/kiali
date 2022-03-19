@@ -83,10 +83,14 @@ func (in *SvcService) GetServiceList(ctx context.Context, criteria ServiceCriter
 		// Namespace access is checked in the upper call
 		if IsNamespaceCached(criteria.Namespace) {
 			svcs, err2 = kialiCache.GetServices(criteria.Namespace, selectorLabels)
-			log.Infof("Services in User Cluster from cache: %+v", svcs)
+			for _, svc := range svcs {
+				log.Infof("Cached Services in User Cluster %s from cache: %+v", criteria.Namespace, svc)
+			}
 		} else {
 			svcs, err2 = in.k8s.GetServices(criteria.Namespace, selectorLabels)
-			log.Infof("Services in User Cluster: %+v", svcs)
+			for _, svc := range svcs {
+				log.Infof("Services in User Cluster %s from cache: %+v", criteria.Namespace, svc)
+			}
 		}
 		if err2 != nil {
 			log.Errorf("Error fetching Services per namespace %s: %s", criteria.Namespace, err2)
@@ -102,7 +106,9 @@ func (in *SvcService) GetServiceList(ctx context.Context, criteria ServiceCriter
 			ServiceSelector: criteria.ServiceSelector,
 		}
 		rSvcs, err2 = in.businessLayer.RegistryStatus.GetRegistryServices(registryCriteria)
-		log.Infof("Register Services in User Cluster: %+v", rSvcs)
+		for _, svc := range rSvcs {
+			log.Infof("Register Services in User Cluster %s from cache: %+v", criteria.Namespace, svc)
+		}
 		if err2 != nil {
 			log.Errorf("Error fetching Registry Services per namespace %s: %s", criteria.Namespace, err2)
 			errChan <- err2
