@@ -55,9 +55,9 @@ func (in *SvcService) GetServiceList(ctx context.Context, criteria ServiceCriter
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err = in.businessLayer.Namespace.GetNamespace(ctx, criteria.Namespace); err != nil {
-		return nil, err
-	}
+	// if _, err = in.businessLayer.Namespace.GetNamespace(ctx, criteria.Namespace); err != nil {
+	// 	return nil, err
+	// }
 
 	nFetches := 4
 	if criteria.IncludeIstioResources {
@@ -83,8 +83,14 @@ func (in *SvcService) GetServiceList(ctx context.Context, criteria ServiceCriter
 		// Namespace access is checked in the upper call
 		if IsNamespaceCached(criteria.Namespace) {
 			svcs, err2 = kialiCache.GetServices(criteria.Namespace, selectorLabels)
+			for _, svc := range svcs {
+				log.Infof("Cached Services in User Cluster %s from cache: %+v", criteria.Namespace, svc)
+			}
 		} else {
 			svcs, err2 = in.k8s.GetServices(criteria.Namespace, selectorLabels)
+			for _, svc := range svcs {
+				log.Infof("Services in User Cluster %s from cache: %+v", criteria.Namespace, svc)
+			}
 		}
 		if err2 != nil {
 			log.Errorf("Error fetching Services per namespace %s: %s", criteria.Namespace, err2)
@@ -100,6 +106,9 @@ func (in *SvcService) GetServiceList(ctx context.Context, criteria ServiceCriter
 			ServiceSelector: criteria.ServiceSelector,
 		}
 		rSvcs, err2 = in.businessLayer.RegistryStatus.GetRegistryServices(registryCriteria)
+		for _, svc := range rSvcs {
+			log.Infof("Register Services in User Cluster %s from cache: %+v", criteria.Namespace, svc)
+		}
 		if err2 != nil {
 			log.Errorf("Error fetching Registry Services per namespace %s: %s", criteria.Namespace, err2)
 			errChan <- err2
@@ -182,6 +191,12 @@ func (in *SvcService) GetServiceList(ctx context.Context, criteria ServiceCriter
 				log.Errorf("Error fetching health per service %s: %s", sv.Name, err)
 			}
 		}
+	}
+
+	log.Infof("%+v in %s", *services, services.Namespace.Name)
+
+	for _, svc := range services.Services {
+		log.Infof("%+v", svc)
 	}
 
 	return services, nil
@@ -312,6 +327,7 @@ func (in *SvcService) getClusterId() string {
 			log.Errorf("Cluster Id resolution failed: %s", err)
 		}
 	}
+	log.Infof("ClusterID is: %s", clusterId)
 	return clusterId
 }
 
@@ -402,9 +418,9 @@ func (in *SvcService) GetServiceDetails(ctx context.Context, namespace, service,
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
-		return nil, err
-	}
+	// if _, err := in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
+	// 	return nil, err
+	// }
 
 	svc, err := in.GetService(ctx, namespace, service)
 	if err != nil {
@@ -668,9 +684,9 @@ func (in *SvcService) GetServiceAppName(ctx context.Context, namespace, service 
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
-		return "", err
-	}
+	// if _, err := in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
+	// 	return "", err
+	// }
 
 	svc, err := in.GetService(ctx, namespace, service)
 	if err != nil {
@@ -685,9 +701,9 @@ func (in *SvcService) GetServiceAppName(ctx context.Context, namespace, service 
 func updateService(layer *Layer, namespace string, service string, jsonPatch string) error {
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := layer.Namespace.GetNamespace(context.TODO(), namespace); err != nil {
-		return err
-	}
+	// if _, err := layer.Namespace.GetNamespace(context.TODO(), namespace); err != nil {
+	// 	return err
+	// }
 
 	return layer.k8s.UpdateService(namespace, service, jsonPatch)
 }

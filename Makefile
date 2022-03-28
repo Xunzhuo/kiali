@@ -28,14 +28,14 @@ VERSION_LABEL ?= ${VERSION}
 # The go commands and the minimum Go version that must be used to build the app.
 GO ?= go
 GOFMT ?= $(shell ${GO} env GOROOT)/bin/gofmt
-GO_VERSION_KIALI = 1.17.7
+GO_VERSION_KIALI = 1.17.5
 
 SWAGGER_VERSION ?= 0.27.0
 
 # Identifies the Kiali container image that will be built.
 IMAGE_ORG ?= kiali
 CONTAINER_NAME ?= ${IMAGE_ORG}/kiali
-CONTAINER_VERSION ?= dev
+CONTAINER_VERSION ?= 1.54.1
 
 # These two vars allow Jenkins to override values.
 QUAY_NAME ?= quay.io/${CONTAINER_NAME}

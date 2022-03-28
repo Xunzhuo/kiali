@@ -123,6 +123,7 @@ func (in *AppService) GetAppList(ctx context.Context, criteria AppCriteria) (mod
 
 	wg.Wait()
 	if len(errChan) != 0 {
+		log.Info("Get APP Error")
 		err = <-errChan
 		return *appList, err
 	}
@@ -135,7 +136,9 @@ func (in *AppService) GetAppList(ctx context.Context, criteria AppCriteria) (mod
 		}
 		applabels := make(map[string][]string)
 		svcReferences := make([]*models.IstioValidationKey, 0)
+		log.Infof("app Item:%+v", appItem)
 		for _, srv := range valueApp.Services {
+			log.Infof("valueApp.Service:%+v", srv)
 			joinMap(applabels, srv.Labels)
 			if criteria.IncludeIstioResources {
 				vsFiltered := kubernetes.FilterVirtualServicesByService(istioConfigList.VirtualServices, srv.Namespace, srv.Name)
@@ -297,9 +300,9 @@ func fetchNamespaceApps(ctx context.Context, layer *Layer, namespace string, app
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := layer.Namespace.GetNamespace(ctx, namespace); err != nil {
-		return nil, err
-	}
+	// if _, err := layer.Namespace.GetNamespace(ctx, namespace); err != nil {
+	// 	return nil, err
+	// }
 
 	var err error
 	ws, err = fetchWorkloads(ctx, layer, namespace, appNameSelector)
