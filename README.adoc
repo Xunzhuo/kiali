@@ -43,16 +43,17 @@ Read the link:./RELEASING.adoc[RELEASING.adoc] file.
 == Developer setup
 
 [NOTE]
-Please, complement the content of this readme document with the link:https://github.com/kiali/kiali-ui/blob/master/README.adoc[README.adoc document of the front-end repository]. Although this document has some instructions about building the front-end, they are not complete.
+Please, complement the content of this readme document with the link:https://github.com/kiali/kiali/blob/master/frontend/README.adoc[README.adoc document of the front-end repository]. Although this document has some instructions about building the front-end, they are not complete.
 
 Make sure you have the following tools:
 
 * The link:http://golang.org/doc/install[Go Programming Language]
-** Currently, Kiali releases are built using Go 1.16. Although Kiali may build correctly using other versions of Go, it's suggested to use version 1.16.2 for development to ensure replicatable builds. Makefiles will require this minimum version of Go.
+** Currently, Kiali releases are built using a specific minimum version of Go as declared in the link:https://github.com/kiali/kiali/blob/master/Makefile#L31[Makefile]. Although Kiali may build correctly using other versions of Go, it's suggested to use the version that the Makefile uses for your own development to ensure replicatable builds.
 * link:http://git-scm.com/book/en/v2/Getting-Started-Installing-Git[git]
 * link:https://docs.docker.com/installation/[Docker] or link:https://podman.io[Podman]
 ** If you are using `podman` declare the environment variable `DORP=podman`.
 * link:https://nodejs.org[NodeJS] (Node.js >= 12.22.0 && <16 with the NPM command)
+* link:https://classic.yarnpkg.com/[Yarn]
 * The _GNU make_ utility or any of it's alternatives
 
 Once you have the required developer tools, you can get and build the code with the following script:
@@ -64,16 +65,17 @@ mkdir kiali_sources
 cd kiali_sources
 export KIALI_SOURCES=$(pwd)
 
-git clone https://git.woa.com/bitliu/kiali.git -b tcm-1.48
-git clone https://github.com/kiali/kiali-ui.git
+
+git clone https://git.woa.com/bitliu/kiali.git 
+
 
 # Build the back-end and run the tests
 cd $KIALI_SOURCES/kiali
 make build test
 
 # Build the front-end and run the tests
-cd $KIALI_SOURCES/kiali-ui
-yarn && yarn build && yarn test
+
+make build-ui-test
 
 export CLUSTER_TYPE=local
 export OPERATOR_CONTAINER_NAME=ccr.ccs.tencentyun.com/kiali/kiali-operator
@@ -85,6 +87,8 @@ cd $KIALI_SOURCES/kiali
 
 # Build the Kiali-server and Kiali-operator container images and push them to the cluster
 make CONTAINER_VERSION=tcm-1.48 build container-build container-push
+=======
+
 ----
 
 [NOTE]
@@ -92,7 +96,6 @@ The rest of this README assumes the directory tree created by the previous comma
 
  -- kiali_sources
     |- kiali
-    |- kiali-ui
     |- kiali-operator
     \- helm-charts
 
@@ -190,7 +193,7 @@ This is to facilitate development. To quickly build a new Kiali container image 
 
 [source,shell]
 ----
-cd $KIALI_SOURCES/kiali-ui
+cd $KIALI_SOURCES/kiali/frontend
 yarn && yarn build
 
 cd $KIALI_SOURCES/kiali
@@ -338,7 +341,7 @@ spec:
 
 === Running the UI outside the cluster
 
-When developing the http://github.com/kiali/kiali-ui[Kiali UI] you will find it useful to run it outside of the cluster to make it easier to update the UI code and see the changes without having to re-deploy. The preferred approach for this is to use the _proxy_ feature of React. The process is described https://github.com/kiali/kiali-ui#developing[here].
+When developing the http://github.com/kiali/kiali/frontend[Kiali UI] you will find it useful to run it outside of the cluster to make it easier to update the UI code and see the changes without having to re-deploy. The preferred approach for this is to use the _proxy_ feature of React. The process is described https://github.com/kiali/kiali/frontend#developing[here].
 
 === Disabling SSL
 

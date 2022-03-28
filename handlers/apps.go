@@ -8,33 +8,35 @@ import (
 	"github.com/kiali/kiali/business"
 )
 
-// appListParams holds the path and query parameters for AppList
+// appParams holds the path and query parameters for appList and appDetails
 //
-// swagger:parameters appList
-type appListParams struct {
+// swagger:parameters appList AppDetails
+type appParams struct {
 	baseHealthParams
 	// The target workload
 	//
 	// in: path
 	Namespace string `json:"namespace"`
+	AppName   string `json:"app"`
 	// Optional
-	Health bool `json:"health"`
+	IncludeHealth bool `json:"health"`
 }
 
-func (p *appListParams) extract(r *http.Request) {
+func (p *appParams) extract(r *http.Request) {
 	vars := mux.Vars(r)
 	query := r.URL.Query()
 	p.baseExtract(r, vars)
 	p.Namespace = vars["namespace"]
-	p.Health = query.Get("health") != ""
+	p.AppName = vars["app"]
+	p.IncludeHealth = query.Get("health") != ""
 }
 
 // AppList is the API handler to fetch all the apps to be displayed, related to a single namespace
 func AppList(w http.ResponseWriter, r *http.Request) {
-	p := appListParams{}
+	p := appParams{}
 	p.extract(r)
 
-	criteria := business.AppCriteria{Namespace: p.Namespace, IncludeIstioResources: true, Health: p.Health, RateInterval: p.RateInterval, QueryTime: p.QueryTime}
+	criteria := business.AppCriteria{Namespace: p.Namespace, IncludeIstioResources: true, IncludeHealth: p.IncludeHealth, RateInterval: p.RateInterval, QueryTime: p.QueryTime}
 
 	// Get business layer
 	business, err := getBusiness(r)
@@ -43,7 +45,7 @@ func AppList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if criteria.Health {
+	if criteria.IncludeHealth {
 		rateInterval, err := adjustRateInterval(r.Context(), business, p.Namespace, p.RateInterval, p.QueryTime)
 		if err != nil {
 			handleErrorResponse(w, err, "Adjust rate interval error: "+err.Error())
@@ -64,18 +66,20 @@ func AppList(w http.ResponseWriter, r *http.Request) {
 
 // AppDetails is the API handler to fetch all details to be displayed, related to a single app
 func AppDetails(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
+	p := appParams{}
+	p.extract(r)
+
+	criteria := business.AppCriteria{Namespace: p.Namespace, AppName: p.AppName, IncludeIstioResources: true, IncludeHealth: p.IncludeHealth, RateInterval: p.RateInterval, QueryTime: p.QueryTime}
+
 	// Get business layer
 	business, err := getBusiness(r)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
 	}
-	namespace := params["namespace"]
-	app := params["app"]
 
 	// Fetch and build app
-	appDetails, err := business.App.GetApp(r.Context(), namespace, app)
+	appDetails, err := business.App.GetAppDetails(r.Context(), criteria)
 	if err != nil {
 		handleErrorResponse(w, err)
 		return

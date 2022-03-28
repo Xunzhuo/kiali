@@ -49,7 +49,7 @@ func TestGetAppListFromDeployments(t *testing.T) {
 	k8s.On("GetServices", mock.AnythingOfType("string"), mock.AnythingOfType("map[string]string")).Return([]core_v1.Service{}, nil)
 	svc := setupAppService(k8s)
 
-	criteria := AppCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := AppCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	appList, _ := svc.GetAppList(context.TODO(), criteria)
 
 	assert.Equal("Namespace", appList.Namespace.Name)
@@ -81,7 +81,8 @@ func TestGetAppFromDeployments(t *testing.T) {
 	config.Set(conf)
 	svc := setupAppService(k8s)
 
-	appDetails, _ := svc.GetApp(context.TODO(), "Namespace", "httpbin")
+	criteria := AppCriteria{Namespace: "Namespace", AppName: "httpbin"}
+	appDetails, _ := svc.GetAppDetails(context.TODO(), criteria)
 
 	assert.Equal("Namespace", appDetails.Namespace.Name)
 	assert.Equal("httpbin", appDetails.Name)
@@ -115,7 +116,7 @@ func TestGetAppListFromReplicaSets(t *testing.T) {
 	k8s.On("GetServices", mock.AnythingOfType("string"), mock.AnythingOfType("map[string]string")).Return([]core_v1.Service{}, nil)
 	svc := setupAppService(k8s)
 
-	criteria := AppCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := AppCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	appList, _ := svc.GetAppList(context.TODO(), criteria)
 
 	assert.Equal("Namespace", appList.Namespace.Name)
@@ -148,7 +149,8 @@ func TestGetAppFromReplicaSets(t *testing.T) {
 
 	svc := setupAppService(k8s)
 
-	appDetails, _ := svc.GetApp(context.TODO(), "Namespace", "httpbin")
+	criteria := AppCriteria{Namespace: "Namespace", AppName: "httpbin"}
+	appDetails, _ := svc.GetAppDetails(context.TODO(), criteria)
 
 	assert.Equal("Namespace", appDetails.Namespace.Name)
 	assert.Equal("httpbin", appDetails.Name)

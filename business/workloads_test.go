@@ -54,7 +54,7 @@ func TestGetWorkloadListFromDeployments(t *testing.T) {
 
 	svc := setupWorkloadService(k8s)
 
-	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	workloadList, _ := svc.GetWorkloadList(context.TODO(), criteria)
 	workloads := workloadList.Workloads
 
@@ -98,7 +98,7 @@ func TestGetWorkloadListFromReplicaSets(t *testing.T) {
 
 	svc := setupWorkloadService(k8s)
 
-	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	workloadList, _ := svc.GetWorkloadList(context.TODO(), criteria)
 	workloads := workloadList.Workloads
 
@@ -139,7 +139,7 @@ func TestGetWorkloadListFromReplicationControllers(t *testing.T) {
 	svc := setupWorkloadService(k8s)
 
 	excludedWorkloads = map[string]bool{}
-	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	workloadList, _ := svc.GetWorkloadList(context.TODO(), criteria)
 	workloads := workloadList.Workloads
 
@@ -182,7 +182,7 @@ func TestGetWorkloadListFromDeploymentConfigs(t *testing.T) {
 	svc := setupWorkloadService(k8s)
 
 	excludedWorkloads = map[string]bool{}
-	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	workloadList, _ := svc.GetWorkloadList(context.TODO(), criteria)
 	workloads := workloadList.Workloads
 
@@ -225,7 +225,7 @@ func TestGetWorkloadListFromStatefulSets(t *testing.T) {
 	svc := setupWorkloadService(k8s)
 
 	excludedWorkloads = map[string]bool{}
-	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	workloadList, _ := svc.GetWorkloadList(context.TODO(), criteria)
 	workloads := workloadList.Workloads
 
@@ -268,7 +268,7 @@ func TestGetWorkloadListFromDaemonSets(t *testing.T) {
 	svc := setupWorkloadService(k8s)
 
 	excludedWorkloads = map[string]bool{}
-	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	workloadList, _ := svc.GetWorkloadList(context.TODO(), criteria)
 	workloads := workloadList.Workloads
 
@@ -310,7 +310,7 @@ func TestGetWorkloadListFromDepRCPod(t *testing.T) {
 
 	svc := setupWorkloadService(k8s)
 
-	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	workloadList, _ := svc.GetWorkloadList(context.TODO(), criteria)
 	workloads := workloadList.Workloads
 
@@ -344,7 +344,7 @@ func TestGetWorkloadListFromPod(t *testing.T) {
 
 	svc := setupWorkloadService(k8s)
 
-	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	workloadList, _ := svc.GetWorkloadList(context.TODO(), criteria)
 	workloads := workloadList.Workloads
 
@@ -378,7 +378,7 @@ func TestGetWorkloadListFromPods(t *testing.T) {
 
 	svc := setupWorkloadService(k8s)
 
-	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	workloadList, _ := svc.GetWorkloadList(context.TODO(), criteria)
 	workloads := workloadList.Workloads
 
@@ -419,8 +419,8 @@ func TestGetWorkloadFromDeployment(t *testing.T) {
 	config.Set(conf)
 
 	svc := setupWorkloadService(k8s)
-
-	workload, _ := svc.GetWorkload(context.TODO(), "Namespace", "details-v1", "", false)
+	criteria := WorkloadCriteria{Namespace: "Namespace", WorkloadName: "details-v1", WorkloadType: "", IncludeServices: false}
+	workload, _ := svc.GetWorkload(context.TODO(), criteria)
 
 	assert.Equal("details-v1", workload.Name)
 	assert.Equal("Deployment", workload.Type)
@@ -457,7 +457,8 @@ func TestGetWorkloadWithInvalidWorkloadType(t *testing.T) {
 
 	svc := setupWorkloadService(k8s)
 
-	workload, _ := svc.GetWorkload(context.TODO(), "Namespace", "details-v1", "invalid", false)
+	criteria := WorkloadCriteria{Namespace: "Namespace", WorkloadName: "details-v1", WorkloadType: "invalid", IncludeServices: false}
+	workload, _ := svc.GetWorkload(context.TODO(), criteria)
 
 	assert.Equal("details-v1", workload.Name)
 	assert.Equal("Deployment", workload.Type)
@@ -494,7 +495,8 @@ func TestGetWorkloadFromPods(t *testing.T) {
 
 	svc := setupWorkloadService(k8s)
 
-	workload, _ := svc.GetWorkload(context.TODO(), "Namespace", "custom-controller", "", false)
+	criteria := WorkloadCriteria{Namespace: "Namespace", WorkloadName: "custom-controller", WorkloadType: "", IncludeServices: false}
+	workload, _ := svc.GetWorkload(context.TODO(), criteria)
 
 	assert.Equal("custom-controller", workload.Name)
 	assert.Equal("CustomController", workload.Type)
@@ -718,11 +720,12 @@ func TestDuplicatedControllers(t *testing.T) {
 
 	svc := setupWorkloadService(k8s)
 
-	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	workloadList, _ := svc.GetWorkloadList(context.TODO(), criteria)
 	workloads := workloadList.Workloads
 
-	workload, _ := svc.GetWorkload(context.TODO(), "Namespace", "duplicated-v1", "", false)
+	criteria = WorkloadCriteria{Namespace: "Namespace", WorkloadName: "duplicated-v1", WorkloadType: "", IncludeServices: false}
+	workload, _ := svc.GetWorkload(context.TODO(), criteria)
 
 	assert.Equal(workloads[0].Type, workload.Type)
 }
@@ -774,11 +777,12 @@ func TestGetWorkloadListFromGenericPodController(t *testing.T) {
 
 	svc := setupWorkloadService(k8s)
 
-	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	workloadList, _ := svc.GetWorkloadList(context.TODO(), criteria)
 	workloads := workloadList.Workloads
 
-	workload, _ := svc.GetWorkload(context.TODO(), "Namespace", owner.Name, "", false)
+	criteria = WorkloadCriteria{Namespace: "Namespace", WorkloadName: owner.Name, WorkloadType: "", IncludeServices: false}
+	workload, _ := svc.GetWorkload(context.TODO(), criteria)
 
 	assert.Equal(len(workloads), 1)
 	assert.NotNil(workload)
@@ -823,7 +827,7 @@ func TestGetWorkloadListKindsWithSameName(t *testing.T) {
 
 	svc := setupWorkloadService(k8s)
 
-	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	workloadList, _ := svc.GetWorkloadList(context.TODO(), criteria)
 	workloads := workloadList.Workloads
 
@@ -877,7 +881,7 @@ func TestGetWorkloadListRSWithoutPrefix(t *testing.T) {
 
 	svc := setupWorkloadService(k8s)
 
-	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	workloadList, _ := svc.GetWorkloadList(context.TODO(), criteria)
 	workloads := workloadList.Workloads
 
@@ -936,11 +940,12 @@ func TestGetWorkloadListRSOwnedByCustom(t *testing.T) {
 
 	svc := setupWorkloadService(k8s)
 
-	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, Health: false}
+	criteria := WorkloadCriteria{Namespace: "Namespace", IncludeIstioResources: false, IncludeHealth: false}
 	workloadList, _ := svc.GetWorkloadList(context.TODO(), criteria)
 	workloads := workloadList.Workloads
 
-	workload, _ := svc.GetWorkload(context.TODO(), "Namespace", owner.Name, "", false)
+	criteria = WorkloadCriteria{Namespace: "Namespace", WorkloadName: owner.Name, WorkloadType: "", IncludeServices: false}
+	workload, _ := svc.GetWorkload(context.TODO(), criteria)
 
 	assert.Equal(len(workloads), 1)
 	assert.NotNil(workload)
