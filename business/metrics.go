@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/models"
 	"github.com/kiali/kiali/prometheus"
 )
@@ -48,6 +49,7 @@ func createMetricsLabelsBuilder(q *models.IstioMetricsQuery) *MetricsLabelsBuild
 		namespaceSet = true
 	}
 	if !namespaceSet && q.Namespace != "" {
+		log.Infof("Get Metrics IN Namespace: ", q.Namespace)
 		lb.Namespace(q.Namespace)
 	}
 	if q.RequestProtocol != "" {
