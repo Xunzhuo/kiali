@@ -61,6 +61,21 @@ const (
 	DashboardsDiscoveryAuto    = "auto"
 )
 
+// FeatureName is the enum type used for named features that can be disabled via KialiFeatureFlags.DisabledFeatures
+type FeatureName string
+
+const (
+	FeatureLogView FeatureName = "logs-tab"
+)
+
+func (fn FeatureName) IsValid() error {
+	switch fn {
+	case FeatureLogView:
+		return nil
+	}
+	return fmt.Errorf("Invalid feature name: %v", fn)
+}
+
 // Global configuration for the application.
 var configuration Config
 var rwMutex sync.RWMutex
@@ -403,6 +418,7 @@ type CertificatesInformationIndicators struct {
 // KialiFeatureFlags available from the CR
 type KialiFeatureFlags struct {
 	CertificatesInformationIndicators CertificatesInformationIndicators `yaml:"certificates_information_indicators,omitempty" json:"certificatesInformationIndicators"`
+	DisabledFeatures                  []string                          `yaml:"disabled_features,omitempty" json:"disabledFeatures,omitempty"`
 	IstioInjectionAction              bool                              `yaml:"istio_injection_action,omitempty" json:"istioInjectionAction"`
 	IstioUpgradeAction                bool                              `yaml:"istio_upgrade_action,omitempty" json:"istioUpgradeAction"`
 	UIDefaults                        UIDefaults                        `yaml:"ui_defaults,omitempty" json:"uiDefaults,omitempty"`
@@ -624,6 +640,7 @@ func NewConfig() (c *Config) {
 				Enabled: true,
 				Secrets: []string{"cacerts", "istio-ca-secret"},
 			},
+			DisabledFeatures:     []string{},
 			IstioInjectionAction: true,
 			IstioUpgradeAction:   false,
 			UIDefaults: UIDefaults{
@@ -937,4 +954,15 @@ func IsIstioNamespace(namespace string) bool {
 // IsRootNamespace returns true if the namespace is the root namespace
 func IsRootNamespace(namespace string) bool {
 	return namespace == configuration.ExternalServices.Istio.RootNamespace
+}
+
+// IsFeatureDisabled will return true if the named feature is to be disabled.
+func IsFeatureDisabled(featureName FeatureName) bool {
+	cfg := Get()
+	for _, f := range cfg.KialiFeatureFlags.DisabledFeatures {
+		if f == string(featureName) {
+			return true
+		}
+	}
+	return false
 }
