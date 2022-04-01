@@ -33,7 +33,7 @@ func createMetricsServiceForNamespace(w http.ResponseWriter, r *http.Request, pr
 	metrics, infoMap := createMetricsServiceForNamespaces(w, r, promSupplier, []string{namespace})
 	if result, ok := infoMap[namespace]; ok {
 		if result.err != nil {
-			RespondWithError(w, http.StatusForbidden, "createMetricsServiceForNamespace Cannot access namespace data: "+result.err.Error())
+			RespondWithError(w, http.StatusForbidden, "Cannot access namespace data: "+result.err.Error())
 			return nil, nil
 		}
 		return metrics, result.info

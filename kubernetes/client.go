@@ -112,17 +112,13 @@ func ConfigClient() (*rest.Config, error) {
 		var incluster *rest.Config
 		var err error
 		if remoteSecret, readErr := GetRemoteSecret(RemoteSecretData); readErr == nil {
-			log.Infof("Start to Create %s Client", "Remote Secret")
 			incluster, err = UseRemoteCreds(remoteSecret)
 		} else {
 			if kialiConfig.Get().KubernetesConfig.EnableCustomSecret == "true" {
 				incluster, err = clientcmd.BuildConfigFromFlags("", kialiConfig.Get().KubernetesConfig.SecretPath)
 				clusterID := kialiConfig.Get().ExternalServices.Istio.ClusterID
 				incluster.Host = "https://" + "mesh-proxy-" + clusterID + ":60002"
-				log.Infof("Host is: %s", incluster.Host)
-				log.Infof("Start to Create %s Client With Path: %s With Config: %+v", "CustomSecret", kialiConfig.Get().KubernetesConfig.SecretPath, *incluster)
 			} else {
-				log.Infof("Start to Create %s Client", "InClusterConfig")
 				incluster, err = rest.InClusterConfig()
 			}
 		}
@@ -165,8 +161,6 @@ func NewClientFromConfig(config *rest.Config) (*K8SClient, error) {
 	client := K8SClient{
 		token: config.BearerToken,
 	}
-
-	log.Infof("Created Config is: %+v", *config)
 
 	log.Debugf("Rest perf config QPS: %f Burst: %d", config.QPS, config.Burst)
 

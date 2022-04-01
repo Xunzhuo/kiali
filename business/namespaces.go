@@ -67,13 +67,10 @@ func (in *NamespaceService) GetNamespaces(ctx context.Context) ([]models.Namespa
 	defer end()
 
 	if kialiCache != nil {
-		log.Infof("Cache is not nil")
 		if ns := kialiCache.GetNamespaces(in.k8s.GetToken()); ns != nil {
 			return ns, nil
 		}
 	}
-
-	log.Infof("Cache is nil")
 
 	labelSelector := config.Get().API.Namespaces.LabelSelector
 
@@ -103,17 +100,13 @@ func (in *NamespaceService) GetNamespaces(ctx context.Context) ([]models.Namespa
 		accessibleNamespaces := config.Get().Deployment.AccessibleNamespaces
 		if queryAllNamespaces {
 			nss, err := in.k8s.GetNamespaces(labelSelector)
-			log.Infof("query namespaces all")
 			if err != nil {
 				// Fallback to using the Kiali service account, if needed
 				if errors.IsForbidden(err) {
-					log.Infof("request is forbiddened, got %v", err)
 					if nss, err = in.getNamespacesUsingKialiSA(labelSelector, err); err != nil {
-						log.Infof("try using kiali sa but still forbiddened, got %v", err)
 						return nil, err
 					}
 				} else {
-					log.Infof("request is not forbiddened but got :%v", err)
 					return nil, err
 				}
 			}
@@ -268,7 +261,6 @@ func (in *NamespaceService) UpdateNamespace(ctx context.Context, namespace strin
 func (in *NamespaceService) getNamespacesUsingKialiSA(labelSelector string, forwardedError error) ([]core_v1.Namespace, error) {
 	// Check if we already are using the Kiali ServiceAccount token. If we are, no need to do further processing, since
 	// this would just circle back to the same results.
-	log.Infof("Get NS Using Kiali SA")
 	if kialiToken, err := kubernetes.GetKialiToken(); err != nil {
 		return nil, err
 	} else if in.k8s.GetToken() == kialiToken {

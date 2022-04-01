@@ -123,7 +123,6 @@ func (in *AppService) GetAppList(ctx context.Context, criteria AppCriteria) (mod
 
 	wg.Wait()
 	if len(errChan) != 0 {
-		log.Info("Get APP Error")
 		err = <-errChan
 		return *appList, err
 	}
@@ -136,9 +135,7 @@ func (in *AppService) GetAppList(ctx context.Context, criteria AppCriteria) (mod
 		}
 		applabels := make(map[string][]string)
 		svcReferences := make([]*models.IstioValidationKey, 0)
-		log.Infof("app Item:%+v", appItem)
 		for _, srv := range valueApp.Services {
-			log.Infof("valueApp.Service:%+v", srv)
 			joinMap(applabels, srv.Labels)
 			if criteria.IncludeIstioResources {
 				vsFiltered := kubernetes.FilterVirtualServicesByService(istioConfigList.VirtualServices, srv.Namespace, srv.Name)

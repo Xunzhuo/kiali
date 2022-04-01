@@ -109,7 +109,7 @@ func NewKialiCache() (KialiCache, error) {
 		BearerToken:     config.BearerToken,
 		Burst:           config.Burst,
 	}
-	log.Infof("Rest Config is: %+v", istioConfig)
+
 	istioClient, err := kubernetes.NewClientFromConfig(&istioConfig)
 	if err != nil {
 		return nil, err

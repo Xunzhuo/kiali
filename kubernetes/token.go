@@ -6,7 +6,6 @@ import (
 
 	"github.com/kiali/kiali/config"
 	kialiConfig "github.com/kiali/kiali/config"
-	"github.com/kiali/kiali/log"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -30,11 +29,9 @@ func GetKialiToken() (string, error) {
 					return "", fmt.Errorf("create RestConfig from custom secret failed: %v", err)
 				}
 				KialiToken = incluster.BearerToken
-				log.Infof("Create Token from Custom Secret %s", KialiToken)
 				return KialiToken, nil
 			} else {
 				token, err = ioutil.ReadFile(DefaultServiceAccountPath)
-				log.Infof("Create Token from SA %s", string(token))
 			}
 			if err != nil {
 				return "", err

@@ -53,7 +53,7 @@ func (in *K8SClient) getIstiodDebugStatus(debugPath string) (map[string][]byte, 
 
 	requestURL := fmt.Sprintf("http://%s:%d%s", istioDeploymentName, telemetryPort, debugPath)
 
-	resp, code, _ := httputil.HttpGet(requestURL, nil, 10*time.Second, nil)
+	resp, code, _, _ := httputil.HttpGet(requestURL, nil, 10*time.Second, nil, nil)
 	if code >= 400 {
 		return nil, fmt.Errorf("error fetching %s from %s/%s. Response code: %d", debugPath, istioNamespace, istioDeploymentName, code)
 	}
@@ -149,7 +149,6 @@ func (in *K8SClient) getIstiodDebugStatus(debugPath string) (map[string][]byte, 
 
 func (in *K8SClient) GetProxyStatus() ([]*ProxyStatus, error) {
 	synczPath := "/debug/syncz"
-	log.Infof("PATH is: %s", synczPath)
 	result, err := in.getIstiodDebugStatus(synczPath)
 	if err != nil {
 		return nil, err
@@ -159,7 +158,6 @@ func (in *K8SClient) GetProxyStatus() ([]*ProxyStatus, error) {
 
 func (in *K8SClient) GetRegistryServices() ([]*RegistryService, error) {
 	registryzPath := "/debug/registryz"
-	log.Infof("PATH is: %s", registryzPath)
 	result, err := in.getIstiodDebugStatus(registryzPath)
 	if err != nil {
 		log.Errorf("Failed to call Istiod endpoint %s error: %s", registryzPath, err)
@@ -170,7 +168,6 @@ func (in *K8SClient) GetRegistryServices() ([]*RegistryService, error) {
 
 func (in *K8SClient) GetRegistryEndpoints() ([]*RegistryEndpoint, error) {
 	endpointzPath := "/debug/endpointz"
-	log.Infof("PATH is: %s", endpointzPath)
 	result, err := in.getIstiodDebugStatus(endpointzPath)
 	if err != nil {
 		log.Errorf("Failed to call Istiod endpoint %s error: %s", endpointzPath, err)
@@ -181,7 +178,6 @@ func (in *K8SClient) GetRegistryEndpoints() ([]*RegistryEndpoint, error) {
 
 func (in *K8SClient) GetRegistryConfiguration() (*RegistryConfiguration, error) {
 	configzPath := "/debug/configz"
-	log.Infof("PATH is: %s", configzPath)
 	result, err := in.getIstiodDebugStatus(configzPath)
 	if err != nil {
 		log.Errorf("Failed to call Istiod endpoint %s error: %s", configzPath, err)
