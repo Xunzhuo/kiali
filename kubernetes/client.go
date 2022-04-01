@@ -107,7 +107,6 @@ func UseRemoteCreds(remoteSecret *RemoteSecret) (*rest.Config, error) {
 // Returns configuration if Kiali is not int Cluster when InCluster is false
 // It returns an error on any problem
 func ConfigClient() (*rest.Config, error) {
-	log.Infof("Start to Create %s Client", "Kube")
 	if kialiConfig.Get().InCluster {
 		var incluster *rest.Config
 		var err error
@@ -130,7 +129,6 @@ func ConfigClient() (*rest.Config, error) {
 
 		return incluster, nil
 	}
-	log.Infof("Start to Create %s Client", "APIServer IP")
 
 	// Read apiserver Host and Port from config
 	apiserverServiceHost := kialiConfig.Get().KubernetesConfig.APIServerServiceName
