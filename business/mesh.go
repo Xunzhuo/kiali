@@ -224,10 +224,12 @@ func (in *MeshService) ResolveKialiControlPlaneCluster(r *http.Request) (*Cluste
 	}
 
 	gatewayToNamespace := false
-	for _, v := range istioDeployment.Spec.Template.Spec.Containers[0].Env {
-		if v.Name == "PILOT_SCOPE_GATEWAY_TO_NAMESPACE" {
-			gatewayToNamespace = v.Value == "true"
-			break
+	if istioDeployment != nil && len(istioDeployment.Spec.Template.Spec.Containers) != 0 {
+		for _, v := range istioDeployment.Spec.Template.Spec.Containers[0].Env {
+			if v.Name == "PILOT_SCOPE_GATEWAY_TO_NAMESPACE" {
+				gatewayToNamespace = v.Value == "true"
+				break
+			}
 		}
 	}
 
