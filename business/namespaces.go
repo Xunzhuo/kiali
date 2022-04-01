@@ -289,7 +289,6 @@ func (in *NamespaceService) getNamespacesUsingKialiSA(labelSelector string, forw
 }
 
 func getNamespacesForKialiSA(labelSelector string) ([]core_v1.Namespace, error) {
-	log.Infof("getNamespacesForKialiSA NS Using Kiali SA")
 	clientFactory, err := kubernetes.GetClientFactory()
 	if err != nil {
 		return nil, err
