@@ -28,7 +28,7 @@ VERSION_LABEL ?= ${VERSION}
 # The go commands and the minimum Go version that must be used to build the app.
 GO ?= go
 GOFMT ?= $(shell ${GO} env GOROOT)/bin/gofmt
-GO_VERSION_KIALI = 1.17.7
+GO_VERSION_KIALI = 1.17.6
 
 SWAGGER_VERSION ?= 0.27.0
 
@@ -58,10 +58,14 @@ GOPATH ?= ${HOME}/go
 # Environment variables set when running the Go compiler.
 GOOS ?= $(shell ${GO} env GOOS)
 GOARCH ?= $(shell ${GO} env GOARCH)
+CGO_ENABLED ?= 0
 GO_BUILD_ENVVARS = \
 	GOOS=$(GOOS) \
 	GOARCH=$(GOARCH) \
-	CGO_ENABLED=0 \
+	CGO_ENABLED=$(CGO_ENABLED)
+
+# Extra build flags passed to the go compiler.
+GO_BUILD_FLAGS ?= 
 
 # Determine which Dockerfile is used to build the server container
 KIALI_DOCKER_FILE ?= Dockerfile-ubi8-minimal

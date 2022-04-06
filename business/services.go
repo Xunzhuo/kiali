@@ -55,9 +55,9 @@ func (in *SvcService) GetServiceList(ctx context.Context, criteria ServiceCriter
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err = in.businessLayer.Namespace.GetNamespace(ctx, criteria.Namespace); err != nil {
-		return nil, err
-	}
+	// if _, err = in.businessLayer.Namespace.GetNamespace(ctx, criteria.Namespace); err != nil {
+	// 	return nil, err
+	// }
 
 	nFetches := 4
 	if criteria.IncludeIstioResources {
@@ -402,9 +402,9 @@ func (in *SvcService) GetServiceDetails(ctx context.Context, namespace, service,
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
-		return nil, err
-	}
+	// if _, err := in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
+	// 	return nil, err
+	// }
 
 	svc, err := in.GetService(ctx, namespace, service)
 	if err != nil {
@@ -668,9 +668,9 @@ func (in *SvcService) GetServiceAppName(ctx context.Context, namespace, service 
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
-		return "", err
-	}
+	// if _, err := in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
+	// 	return "", err
+	// }
 
 	svc, err := in.GetService(ctx, namespace, service)
 	if err != nil {
@@ -685,9 +685,9 @@ func (in *SvcService) GetServiceAppName(ctx context.Context, namespace, service 
 func updateService(layer *Layer, namespace string, service string, jsonPatch string) error {
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := layer.Namespace.GetNamespace(context.TODO(), namespace); err != nil {
-		return err
-	}
+	// if _, err := layer.Namespace.GetNamespace(context.TODO(), namespace); err != nil {
+	// 	return err
+	// }
 
 	return layer.k8s.UpdateService(namespace, service, jsonPatch)
 }

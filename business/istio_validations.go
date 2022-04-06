@@ -46,9 +46,9 @@ func (in *IstioValidationsService) GetValidations(ctx context.Context, namespace
 	defer end()
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
-		return nil, err
-	}
+	// if _, err := in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
+	// 	return nil, err
+	// }
 
 	// Ensure the service exists
 	if service != "" {
@@ -156,9 +156,10 @@ func (in *IstioValidationsService) GetIstioObjectValidations(ctx context.Context
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err = in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
-		return nil, istioReferences, err
-	}
+  
+	// if _, err = in.businessLayer.Namespace.GetNamespace(ctx, namespace); err != nil {
+	// 	return nil, err
+	// }
 
 	// time this function execution so we can capture how long it takes to fully validate this istio object
 	timer := internalmetrics.GetSingleValidationProcessingTimePrometheusTimer(namespace, objectType, object)
