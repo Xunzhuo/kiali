@@ -297,9 +297,9 @@ func fetchNamespaceApps(ctx context.Context, layer *Layer, namespace string, app
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := layer.Namespace.GetNamespace(ctx, namespace); err != nil {
-		return nil, err
-	}
+	// if _, err := layer.Namespace.GetNamespace(ctx, namespace); err != nil {
+	// 	return nil, err
+	// }
 
 	var err error
 	ws, err = fetchWorkloads(ctx, layer, namespace, appNameSelector)

@@ -3,11 +3,9 @@ package kubernetes
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -16,7 +14,6 @@ import (
 	security_v1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 	istio "istio.io/client-go/pkg/clientset/versioned"
 	core_v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/log"
@@ -49,91 +46,20 @@ func (in *K8SClient) Istio() istio.Interface {
 
 func (in *K8SClient) getIstiodDebugStatus(debugPath string) (map[string][]byte, error) {
 	c := config.Get()
-	istiods, err := in.GetPods(c.IstioNamespace, labels.Set(map[string]string{
-		"app": "istiod",
-	}).String())
 
-	if err != nil {
-		return nil, err
+	istioNamespace := c.IstioNamespace
+	istioDeploymentName := c.ExternalServices.Istio.IstiodDeploymentName
+	telemetryPort := c.ExternalServices.Istio.IstiodPodMonitoringPort
+
+	requestURL := fmt.Sprintf("http://%s:%d%s", istioDeploymentName, telemetryPort, debugPath)
+
+	resp, code, _, _ := httputil.HttpGet(requestURL, nil, 10*time.Second, nil, nil)
+
+	if code >= 400 {
+		return nil, fmt.Errorf("error fetching %s from %s/%s. Response code: %d", debugPath, istioNamespace, istioDeploymentName, code)
 	}
-
-	healthyIstiods := make([]*core_v1.Pod, 0, len(istiods))
-	for i, istiod := range istiods {
-		if istiod.Status.Phase == "Running" {
-			healthyIstiods = append(healthyIstiods, &istiods[i])
-		}
-	}
-
-	if len(healthyIstiods) == 0 {
-		return nil, errors.New("unable to find any healthy Pilot instance")
-	}
-
-	// Pulling an open port from the port pool
-	freePort := httputil.Pool.GetFreePort()
-	defer httputil.Pool.FreePort(freePort)
-
-	// Check if the kube-api has proxy access to pods in the istio-system
-	// https://github.com/kiali/kiali/issues/3494#issuecomment-772486224
-	// The 8080 port is not accessible from outside of the pod. However, it is used for kubernetes to do the live probes.
-	// Using the port-forwarding, the call is made as it was in the pod itself, as a localhost call.
-	// Also the port-forwarding to a pod is done via the KubeAPI. Therefore if the call doesn't return any error,
-	// it means that Kiali has access to the KubeAPI and that the KubeAPI has access to the Istiod (control plane).
-	_, err = in.ForwardGetRequest(c.IstioNamespace, istiods[0].Name, freePort, 8080, "/ready")
-	if err != nil {
-		return nil, fmt.Errorf("unable to proxy Istiod pods. " +
-			"Make sure your Kubernetes API server has access to the Istio control plane through 8080 port")
-	}
-
-	wg := sync.WaitGroup{}
-	wg.Add(len(healthyIstiods))
-	errChan := make(chan error, len(healthyIstiods))
-	syncChan := make(chan map[string][]byte, len(healthyIstiods))
-
-	result := map[string][]byte{}
-	for _, istiod := range healthyIstiods {
-		go func(name, namespace string) {
-			defer wg.Done()
-
-			// Pulling an open port from the port pool
-			freePort := httputil.Pool.GetFreePort()
-			defer httputil.Pool.FreePort(freePort)
-
-			// The 15014 port on Istiod is open for control plane monitoring.
-			// Here's the Istio doc page about the port usage by istio:
-			// https://istio.io/latest/docs/ops/deployment/requirements/#ports-used-by-istio
-			res, err := in.ForwardGetRequest(namespace, name, freePort, c.ExternalServices.Istio.IstiodPodMonitoringPort, debugPath)
-			if err != nil {
-				errChan <- fmt.Errorf("%s: %s", name, err.Error())
-			} else {
-				syncChan <- map[string][]byte{name: res}
-			}
-		}(istiod.Name, istiod.Namespace)
-	}
-
-	wg.Wait()
-	close(errChan)
-	close(syncChan)
-
-	errs := ""
-	for err := range errChan {
-		if errs != "" {
-			errs = errs + "; "
-		}
-		errs = errs + err.Error()
-	}
-	errs = "Error fetching the proxy-status in the following pods: " + errs
-
-	for status := range syncChan {
-		for pilot, sync := range status {
-			result[pilot] = sync
-		}
-	}
-
-	if len(result) > 0 {
-		return result, nil
-	} else {
-		return nil, errors.New(errs)
-	}
+	res := map[string][]byte{istioDeploymentName: resp}
+	return res, nil
 }
 
 func (in *K8SClient) GetProxyStatus() ([]*ProxyStatus, error) {

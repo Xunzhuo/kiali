@@ -82,7 +82,6 @@ func getClientFactory(istioConfig *rest.Config, expiry time.Duration) (*clientFa
 // NewClient creates a new ClientInterface based on a users k8s token
 func (cf *clientFactory) newClient(authInfo *api.AuthInfo) (ClientInterface, error) {
 	config := *cf.baseIstioConfig
-
 	config.BearerToken = authInfo.Token
 
 	// There is a feature when using OpenID strategy to allow using a proxy

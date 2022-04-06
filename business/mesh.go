@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -213,36 +212,30 @@ func (in *MeshService) ResolveKialiControlPlaneCluster(r *http.Request) (*Cluste
 		return nil, err
 	}
 
-	if istioDeployment == nil {
-		kialiControlPlaneClusterCached = true
-		return nil, nil
-	}
-
-	if len(istioDeployment.Spec.Template.Spec.Containers) == 0 {
-		kialiControlPlaneClusterCached = true
-		return nil, nil
-	}
-
 	myClusterName := ""
-	for _, v := range istioDeployment.Spec.Template.Spec.Containers[0].Env {
-		if v.Name == "CLUSTER_ID" {
-			myClusterName = v.Value
-			break
+
+	if istioDeployment != nil && len(istioDeployment.Spec.Template.Spec.Containers) != 0 {
+		for _, v := range istioDeployment.Spec.Template.Spec.Containers[0].Env {
+			if v.Name == "CLUSTER_ID" {
+				myClusterName = v.Value
+				break
+			}
 		}
 	}
 
 	gatewayToNamespace := false
-	for _, v := range istioDeployment.Spec.Template.Spec.Containers[0].Env {
-		if v.Name == "PILOT_SCOPE_GATEWAY_TO_NAMESPACE" {
-			gatewayToNamespace = v.Value == "true"
-			break
+	if istioDeployment != nil && len(istioDeployment.Spec.Template.Spec.Containers) != 0 {
+		for _, v := range istioDeployment.Spec.Template.Spec.Containers[0].Env {
+			if v.Name == "PILOT_SCOPE_GATEWAY_TO_NAMESPACE" {
+				gatewayToNamespace = v.Value == "true"
+				break
+			}
 		}
 	}
 
 	if len(myClusterName) == 0 {
 		// We didn't find it. This may mean that Istio is not setup with multi-cluster enabled.
-		kialiControlPlaneClusterCached = true
-		return nil, nil
+		myClusterName = "Kubernetes"
 	}
 
 	// Since this is dealing with the "home" cluster, we assume that the API Endpoint
@@ -258,14 +251,17 @@ func (in *MeshService) ResolveKialiControlPlaneCluster(r *http.Request) (*Cluste
 		return nil, err
 	}
 
-	var ctx context.Context
-	if r != nil {
-		ctx = r.Context()
-	} else {
-		ctx = context.Background()
-	}
 	// Discover ourselves
-	kialiInstances := findKialiInNamespace(ctx, os.Getenv("ACTIVE_NAMESPACE"), myClusterName, in.layer)
+	kialiINSTANCES := make([]KialiInstance, 1)
+	kialiInstance := KialiInstance{
+		ServiceName:      config.Get().Deployment.InstanceName,
+		Namespace:        config.Get().IstioNamespace,
+		OperatorResource: "",
+		Version:          "v1.54",
+		Url:              "",
+	}
+
+	kialiInstances := append(kialiINSTANCES, kialiInstance)
 	if len(kialiInstances) > 0 && r != nil {
 		for i := range kialiInstances {
 			// If URL is already populated (because of an annotation), trust that because it's user configuration.

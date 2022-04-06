@@ -266,7 +266,6 @@ func (in *NamespaceService) getNamespacesUsingKialiSA(labelSelector string, forw
 	} else if in.k8s.GetToken() == kialiToken {
 		return nil, forwardedError
 	}
-
 	// Let's get the namespaces list using the Kiali Service Account
 	nss, err := getNamespacesForKialiSA(labelSelector)
 	if err != nil {

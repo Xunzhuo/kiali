@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/kiali/kiali/business"
@@ -19,7 +20,10 @@ var defaultPromClientSupplier = prometheus.NewClient
 
 func checkNamespaceAccess(ctx context.Context, nsServ business.NamespaceService, namespace string) (*models.Namespace, error) {
 	if nsInfo, err := nsServ.GetNamespace(ctx, namespace); err != nil {
-		return nil, err
+		ns := core_v1.Namespace{}
+		ns.Name = namespace
+		result := models.CastNamespace(ns)
+		return &result, nil
 	} else {
 		return nsInfo, nil
 	}
