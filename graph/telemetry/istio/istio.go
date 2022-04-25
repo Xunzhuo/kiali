@@ -305,8 +305,6 @@ func populateTrafficMap(trafficMap graph.TrafficMap, vector *model.Vector, metri
 			continue
 		}
 
-		destCluster = sourceCluster
-
 		var code string
 		if isRequests {
 			lProtocol, protocolOk := m["request_protocol"]
